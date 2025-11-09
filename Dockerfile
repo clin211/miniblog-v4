@@ -53,7 +53,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     make build BINS=blog-apiserver
 
 # 将 Makefile 的构建产物复制到固定位置，供 runtime 阶段 COPY
-RUN mkdir -p /app && cp -v ../../../_output/platforms/${OS}/${ARCH}/blog-apiserver /app/blog-apiserver
+RUN mkdir -p /app && cp -v _output/platforms/${OS}/${ARCH}/blog-apiserver /app/blog-apiserver
 
 # 2) Runtime stage：极小基础镜像
 FROM scratch AS runtime
