@@ -1,0 +1,32 @@
+{
+    "protoc": {
+        "path": "protoc",
+        "compile_on_save": false,
+        "options": [
+            "--proto_path=${workspaceFolder}/pkg/api",
+            "--proto_path=${workspaceFolder}/third_party/protobuf"
+        ]
+    },
+    "[proto3]": {
+        "editor.defaultFormatter": "vscode-proto3.protoc"
+    },
+    "files.associations": {
+        "*.proto": "proto3"
+    },
+    "cSpell.words": [
+        "APIROOT",
+        "apiserver",
+        "codegen",
+        "contextx",
+        "coverprofile",
+        "favadi",
+        "genericapiserver",
+        "golangci",
+        "healthz",
+        "logtostderr",
+        "miniblog",
+        "onexstack",
+        "openapiv",
+        "protoc"
+    ]
+}
