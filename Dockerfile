@@ -59,7 +59,7 @@ RUN mkdir -p /app && cp -v _output/platforms/${OS}/${ARCH}/blog-apiserver /app/b
 FROM scratch AS runtime
 WORKDIR /app
 # 复制 CA 证书以支持 HTTPS（如不需要可移除该行）
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+# COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 # 仅复制二进制
 COPY --from=builder /app/blog-apiserver /app/blog-apiserver
 
