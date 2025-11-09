@@ -12,8 +12,8 @@ ENV GOTOOLCHAIN=auto
 ARG GOPROXY=https://goproxy.cn,direct
 ENV GOPROXY=${GOPROXY}
 ENV GOSUMDB=sum.golang.org
-ARG OS
-ARG ARCH
+ARG OS=linux
+ARG ARCH=amd64
 WORKDIR /workspace
 
 # Optional: install build-time tools (as needed)
