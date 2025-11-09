@@ -1,0 +1,56 @@
+name: Docker Image CI
+on:
+  push:
+    branches:
+      - "main"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU
+        uses: actions/checkout@v4
+
+      - name: give version
+        run: |
+          echo "VERSION=$(git describe --tags --always --match='v*')" >> $GITHUB_ENV
+
+      - name: print version
+        run: |
+          echo "print version is ${{env.VERSION}}"
+
+      - name: "use env version build binary file"
+        working-directory: _output/platforms/linux/amd64
+        run: |
+          echo "use env version build binary file"
+          ls -l
+          make build VERSION=${{env.VERSION}} BINS=blog-apiserver
+      - name: "use binary file build docker image"
+        working-directory: build/docker/blog-apiserver
+        run: |
+          echo "use binary file build docker image"
+          docker build . --file Dockerfile --tag registry.cn-chengdu.aliyuncs.com/go-practice/miniblog-v4:${{env.VERSION}}
+          docker push registry.cn-chengdu.aliyuncs.com/go-practice/miniblog-v4:${{env.VERSION}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the Docker image
+        run: |
+          echo "build the image with tag is ${{env.VERSION}}"
+          docker version
+          # 登录阿里云镜像仓库
+          docker login --username=${{secrets.ALIYUN_USERNAME}} --password=${{secrets.ALIYUN_PASSWORD}} registry.cn-chengdu.aliyuncs.com
+          # 推送镜像到镜像仓库
+          docker push registry.cn-chengdu.aliyuncs.com/go-practice/miniblog-v4:${{env.VERSION}}
+
+      - name: deploy to remote server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{secrets.HOST}}
+          username: root
+          key: ${{secrets.SSH_PRIVATE_KEY}}
+          port: 22
+          script: |
+            echo "deploy the image with tag is ${{env.VERSION}}"
+            cd /home/project/miniblog-v4
+            sh setup.sh ${{secrets.ALIYUN_USERNAME}} ${{secrets.ALIYUN_PASSWORD}} ${{env.VERSION}}

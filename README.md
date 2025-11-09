@@ -50,14 +50,14 @@ GNU Make 4.3
 
 在项目根目录下，执行以下命令构建项目：
 
-**1. 安装依赖工具和包**
+1. 安装依赖工具和包
 
 ```bash
 make deps  # 安装项目所需的开发工具  
 go mod tidy # 下载 Go 模块依赖  
 ```
 
-**2. 生成代码**
+2. 生成代码
 
 ```bash
 make protoc # generate gRPC code  
@@ -66,7 +66,7 @@ go mod tidy # tidy dependencies
 go generate ./... # run all go:generate directives  
 ```
 
-**3. 构建应用**
+3. 构建应用
 
 ```bash
 make build # build all binary files locate in cmd/  
@@ -88,19 +88,19 @@ _output/platforms/
 
 启动服务有多种方式：
 
-**1. 使用构建的二进制文件运行**
+1. 使用构建的二进制文件运行
 
-```bash  
-# 启动 apiserver 服务  
-$ _output/platforms/linux/amd64/blog-apiserver --config configs/blog-apiserver.yaml  
-# 服务将在以下端口启动：  
-# - HTTP API: http://localhost:5555
-# - Health Check: http://localhost:5555/healthz  
-# - Metrics: http://localhost:5555/metrics  
-$ curl http://localhost:5555/healthz # 测试：打开另外一个终端，调用健康检查接口  
-```
+  ```bash  
+  # 启动 apiserver 服务  
+  $ _output/platforms/linux/amd64/blog-apiserver --config configs/blog-apiserver.yaml  
+  # 服务将在以下端口启动：  
+  # - HTTP API: http://localhost:5555
+  # - Health Check: http://localhost:5555/healthz  
+  # - Metrics: http://localhost:5555/metrics  
+  $ curl http://localhost:5555/healthz # 测试：打开另外一个终端，调用健康检查接口  
+  ```
 
-**2. 使用 Docker 运行**
+2. 使用 Docker 运行
 
 ```bash
 # 构建镜像  
@@ -128,29 +128,358 @@ otel:
     output: stdout
 ```  
 
-## Versioning
+## 快速参考手册
 
-本项目遵循 [语义版本控制](https://semver.org/lang/zh-CN/) 规范。
+### 构建和部署命令
 
-## Authors
+#### 本地开发环境
 
-### 主要贡献者
+```bash
+# 1. 启动依赖服务（PostgreSQL, Redis, OTEL）
+docker compose -f docker-compose.env.yml up -d
 
-- **长林啊** - *项目创建者和维护者* - [767425412lin@gmail.com](mailto:767425412lin@gmail.com)
-  - 项目架构设计
-  - 核心功能开发
-  - 技术方案制定
+# 2. 构建应用
+make build BINS=blog-apiserver
 
-### 贡献者列表
+# 3. 构建镜像
+make image PLATFORM=linux_amd64 VERSION=v0.0.5-alpha IMAGES=blog-apiserver
 
-感谢所有为本项目做出贡献的开发者们！
+# 4. 启动应用容器
+cd build/docker/blog-apiserver
+docker compose up -d
 
-<!-- 这里会自动显示贡献者头像 -->
-<a href="github.com/clin211/miniblog-v4/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=github.com/clin211/miniblog-v4" />
-</a>
+# 5. 查看日志
+docker compose logs -f
 
-*贡献者列表由 [contrib.rocks](https://contrib.rocks) 生成*
+# 6. 测试健康检查
+curl localhost:5556/healthz
+```
+
+#### 生产环境部署
+
+```bash
+# 1. 准备生产配置
+cp configs/blog-apiserver.prod.yaml.example configs/blog-apiserver.prod.yaml
+vim configs/blog-apiserver.prod.yaml  # 修改数据库地址、密码等
+
+# 2. 构建生产镜像
+make build BINS=blog-apiserver
+make image PLATFORM=linux_amd64 VERSION=v1.0.0 IMAGES=blog-apiserver
+
+# 3. 部署
+cd build/docker/blog-apiserver
+VERSION=v1.0.0 docker compose -f docker-compose.prod.yml up -d
+
+# 4. 验证
+curl localhost:5556/healthz
+docker logs blog-apiserver
+```
+
+### 常用运维命令
+
+#### 查看状态
+
+```bash
+# 查看运行中的容器
+docker ps
+
+# 查看所有容器（包括停止的）
+docker ps -a
+
+# 查看特定容器
+docker ps | grep blog-apiserver
+
+# 查看容器详细信息
+docker inspect blog-apiserver
+
+# 查看资源使用
+docker stats blog-apiserver
+```
+
+#### 日志管理
+
+```bash
+# 实时查看日志
+docker logs -f blog-apiserver
+
+# 查看最近 50 行
+docker logs --tail 50 blog-apiserver
+
+# 查看最近 30 分钟的日志
+docker logs --since 30m blog-apiserver
+
+# 查看特定时间段
+docker logs --since "2025-11-09T10:00:00" blog-apiserver
+```
+
+#### 容器操作
+
+```bash
+# 启动容器
+docker start blog-apiserver
+
+# 停止容器
+docker stop blog-apiserver
+
+# 重启容器
+docker restart blog-apiserver
+
+# 删除容器
+docker rm blog-apiserver
+
+# 强制删除运行中的容器
+docker rm -f blog-apiserver
+```
+
+#### Docker Compose 操作
+
+```bash
+# 启动服务
+docker compose up -d
+
+# 停止服务
+docker compose down
+
+# 重启服务
+docker compose restart
+
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f
+
+# 重新构建并启动
+docker compose up -d --build
+```
+
+### 镜像管理
+
+```bash
+# 查看本地镜像
+docker images | grep blog-apiserver
+
+# 删除镜像
+docker rmi miniblog-v4/blog-apiserver:v0.0.5-alpha
+
+# 清理未使用的镜像
+docker image prune
+
+# 导出镜像
+docker save miniblog-v4/blog-apiserver:v0.0.5-alpha -o blog-apiserver.tar
+
+# 导入镜像
+docker load -i blog-apiserver.tar
+
+# 标记镜像
+docker tag miniblog-v4/blog-apiserver:v0.0.5-alpha miniblog-v4/blog-apiserver:latest
+```
+
+### 网络调试
+
+```bash
+# 查看容器网络配置
+docker inspect blog-apiserver | grep -A 20 "Networks"
+
+# 查看 Docker 网络
+docker network ls
+
+# 查看网络详情
+docker network inspect miniblog-v4_net
+
+# 测试容器内网络连接（如果容器有 shell）
+docker exec -it blog-apiserver ping host.docker.internal
+
+# 从宿主机测试端口
+telnet localhost 5556
+nc -zv localhost 5556
+```
+
+### API 测试
+
+```bash
+# 健康检查
+curl -i localhost:5556/healthz
+
+# 创建用户
+curl -X POST http://localhost:5556/v1/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "password": "Test@123",
+    "email": "test@example.com"
+  }'
+
+# 用户登录
+curl -X POST http://localhost:5556/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "password": "Test@123"
+  }'
+
+# 查看指标
+curl localhost:5556/metrics
+
+# 查看 pprof
+curl localhost:5556/debug/pprof/
+```
+
+### 故障排查
+
+#### 问题：容器启动后立即退出
+
+```bash
+# 1. 查看日志
+docker logs blog-apiserver
+
+# 2. 检查退出代码
+docker inspect blog-apiserver | grep -A 5 "State"
+
+# 3. 尝试交互式启动（如果可能）
+docker run -it --rm miniblog-v4/blog-apiserver:v0.0.5-alpha /bin/sh
+```
+
+#### 问题：无法连接数据库
+
+```bash
+# 1. 检查数据库是否运行
+docker ps | grep postgres
+
+# 2. 从宿主机测试数据库连接
+telnet localhost 54321
+
+# 3. 检查配置文件
+cat configs/blog-apiserver.docker.yaml | grep -A 5 postgresql
+
+# 4. 查看应用日志
+docker logs blog-apiserver | grep -i "database\|postgres"
+```
+
+#### 问题：端口冲突
+
+```bash
+# 1. 查看端口占用
+lsof -i :5556
+netstat -an | grep 5556
+
+# 2. 停止占用端口的进程
+kill -9 <PID>
+
+# 3. 修改 docker-compose.yml 使用其他端口
+# ports:
+#   - "5557:5556"
+```
+
+#### 问题：磁盘空间不足
+
+```bash
+# 查看 Docker 占用空间
+docker system df
+
+# 清理未使用的资源
+docker system prune
+
+# 清理所有未使用的镜像
+docker image prune -a
+
+# 清理构建缓存
+docker builder prune
+```
+
+### 配置文件位置
+
+| 文件 | 用途 |
+|------|------|
+| `configs/blog-apiserver.yaml` | 本地开发配置（非 Docker） |
+| `configs/blog-apiserver.docker.yaml` | Docker 开发环境配置 |
+| `configs/blog-apiserver.prod.yaml.example` | 生产环境配置模板 |
+| `build/docker/blog-apiserver/Dockerfile` | 镜像构建文件 |
+| `build/docker/blog-apiserver/docker-compose.yml` | 开发环境 Compose |
+| `build/docker/blog-apiserver/docker-compose.prod.yml` | 生产环境 Compose |
+| `docker-compose.env.yml` | 依赖服务 Compose |
+
+### 环境变量
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `VERSION` | 镜像版本 | `latest` |
+| `TZ` | 时区 | `Asia/Shanghai` |
+| `GOPROXY` | Go 代理 | `https://goproxy.cn,direct` |
+
+### 端口映射
+
+| 服务 | 容器端口 | 宿主机端口 |
+|------|---------|-----------|
+| blog-apiserver | 5556 | 5556 |
+| PostgreSQL | 5432 | 54321 |
+| Redis | 6379 | 56379 |
+| OTEL Collector | 4327 | 4327 |
+| OTEL Collector (HTTP) | 4328 | 4328 |
+| OTEL Health | 13133 | 13133 |
+
+### 性能优化建议
+
+#### 镜像构建优化
+
+```bash
+# 使用缓存加速构建
+make image PLATFORM=linux_amd64 VERSION=vX.X.X IMAGES=blog-apiserver
+
+# 并行构建多个平台
+make build.multiarch BINS=blog-apiserver
+```
+
+#### 资源限制
+
+在生产环境 `docker-compose.prod.yml` 中配置：
+
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '2.0'
+      memory: 2G
+    reservations:
+      cpus: '0.5'
+      memory: 512M
+```
+
+#### 日志限制
+
+```yaml
+logging:
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+    compress: "true"
+```
+
+### 安全检查清单
+
+- [ ] 修改默认 JWT 密钥
+- [ ] 使用强密码（数据库、Redis）
+- [ ] 配置文件权限设置为 600
+- [ ] 启用 TLS/SSL（生产环境）
+- [ ] 定期更新基础镜像
+- [ ] 限制容器资源使用
+- [ ] 配置防火墙规则
+- [ ] 启用日志审计
+- [ ] 定期备份数据
+
+### 监控指标
+
+```bash
+# Prometheus 指标
+curl localhost:5556/metrics
+
+# 容器资源使用
+docker stats blog-apiserver
+
+# 健康检查
+while true; do curl -s localhost:5556/healthz | jq -r .timestamp; sleep 5; done
+```
 
 ## 附录
 
