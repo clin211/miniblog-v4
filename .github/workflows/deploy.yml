@@ -19,7 +19,7 @@ jobs:
           echo "print version is ${{env.VERSION}}"
 
       - name: "use env version build binary file"
-        working-directory: _output/platforms/linux/amd64
+        working-directory: .
         run: |
           echo "use env version build binary file"
           ls -l
