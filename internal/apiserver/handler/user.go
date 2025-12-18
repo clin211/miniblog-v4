@@ -1,9 +1,23 @@
 package handler
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/clin211/miniblog-v4/pkg/core"
+	"github.com/gin-gonic/gin"
 )
+
+func init() {
+	Register(func(v1 *gin.RouterGroup, handler *Handler) {
+		// 用户相关路由
+		rg := v1.Group("/users")
+		rg.POST("", handler.CreateUser) // 创建用户。这里要注意：创建用户是不用进行认证和授权的
+		rg.Use(handler.mws...)
+		rg.PUT(":userID/change-password", handler.ChangePassword) // 修改用户密码
+		rg.PUT(":userID", handler.UpdateUser)                     // 更新用户信息
+		rg.DELETE(":userID", handler.DeleteUser)                  // 删除用户
+		rg.GET(":userID", handler.GetUser)                        // 查询用户详情
+		rg.GET("", handler.ListUser)                              // 查询用户列表.
+	})
+}
 
 // Login 用户登录并返回 JWT Token.
 func (h *Handler) Login(c *gin.Context) {
@@ -43,18 +57,4 @@ func (h *Handler) GetUser(c *gin.Context) {
 // ListUser 列出用户信息.
 func (h *Handler) ListUser(c *gin.Context) {
 	core.HandleQueryRequest(c, h.biz.UserV1().List, h.val.ValidateListUserRequest)
-}
-
-func init() {
-	Register(func(v1 *gin.RouterGroup, handler *Handler) {
-		// 用户相关路由
-		rg := v1.Group("/users")
-		rg.POST("", handler.CreateUser) // 创建用户。这里要注意：创建用户是不用进行认证和授权的
-		rg.Use(handler.mws...)
-		rg.PUT(":userID/change-password", handler.ChangePassword) // 修改用户密码
-		rg.PUT(":userID", handler.UpdateUser)                     // 更新用户信息
-		rg.DELETE(":userID", handler.DeleteUser)                  // 删除用户
-		rg.GET(":userID", handler.GetUser)                        // 查询用户详情
-		rg.GET("", handler.ListUser)                              // 查询用户列表.
-	})
 }
