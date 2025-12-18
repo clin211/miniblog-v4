@@ -57,7 +57,7 @@ make deps  # 安装项目所需的开发工具
 go mod tidy # 下载 Go 模块依赖  
 ```
 
-2. 生成代码
+1. 生成代码
 
 ```bash
 make protoc # generate gRPC code  
@@ -66,7 +66,7 @@ go mod tidy # tidy dependencies
 go generate ./... # run all go:generate directives  
 ```
 
-3. 构建应用
+1. 构建应用
 
 ```bash
 make build # build all binary files locate in cmd/  
@@ -100,7 +100,7 @@ _output/platforms/
   $ curl http://localhost:5555/healthz # 测试：打开另外一个终端，调用健康检查接口  
   ```
 
-2. 使用 Docker 运行
+1. 使用 Docker 运行
 
 ```bash
 # 构建镜像  

@@ -172,3 +172,7 @@ Model   (数据库模型) -> internal/apiserver/model/
   * type: feat, fix, chore, docs...
   * scope: 功能模块或服务名
   * subject: 简明描述
+
+## 项目开发宪法
+
+@./.claude/constitution.md
