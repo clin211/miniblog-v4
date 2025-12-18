@@ -21,7 +21,7 @@ func (b *userBiz) Delete(ctx context.Context, rq *v1.DeleteUserRequest) (*v1.Del
 
 	if _, err := b.authz.RemoveGroupingPolicy(rq.GetUserID(), known.RoleUser); err != nil {
 		slog.ErrorContext(ctx, "Failed to remove grouping policy for user", "user", rq.GetUserID(), "role", known.RoleUser, "error", err)
-		return nil, errno.ErrRemoveRole.WithMessage("%s", err.Error())
+		return nil, errno.ErrRemoveRole.WithMessage(err.Error())
 	}
 
 	return &v1.DeleteUserResponse{}, nil

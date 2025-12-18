@@ -2,6 +2,7 @@ package validation
 
 import (
 	"context"
+	"fmt"
 
 	genericvalidation "github.com/clin211/miniblog-v4/pkg/validation"
 
@@ -67,7 +68,7 @@ func (v *Validator) ValidateLoginRequest(ctx context.Context, rq *v1.LoginReques
 // ValidateChangePasswordRequest 校验 ChangePasswordRequest 结构体的有效性.
 func (v *Validator) ValidateChangePasswordRequest(ctx context.Context, rq *v1.ChangePasswordRequest) error {
 	if rq.GetUserID() != contextx.UserID(ctx) {
-		return errno.ErrPermissionDenied.WithMessage("The logged-in user `%s` does not match request user `%s`", contextx.UserID(ctx), rq.GetUserID())
+		return errno.ErrPermissionDenied.WithMessage(fmt.Sprintf("The logged-in user `%s` does not match request user `%s`", contextx.UserID(ctx), rq.GetUserID()))
 	}
 	return genericvalidation.ValidateAllFields(rq, v.ValidateUserRules())
 }
@@ -80,7 +81,7 @@ func (v *Validator) ValidateCreateUserRequest(ctx context.Context, rq *v1.Create
 // ValidateUpdateUserRequest 校验更新用户请求.
 func (v *Validator) ValidateUpdateUserRequest(ctx context.Context, rq *v1.UpdateUserRequest) error {
 	if rq.GetUserID() != contextx.UserID(ctx) {
-		return errno.ErrPermissionDenied.WithMessage("The logged-in user `%s` does not match request user `%s`", contextx.UserID(ctx), rq.GetUserID())
+		return errno.ErrPermissionDenied.WithMessage(fmt.Sprintf("The logged-in user `%s` does not match request user `%s`", contextx.UserID(ctx), rq.GetUserID()))
 	}
 	return genericvalidation.ValidateSelectedFields(rq, v.ValidateUserRules(), "UserID")
 }
@@ -93,7 +94,7 @@ func (v *Validator) ValidateDeleteUserRequest(ctx context.Context, rq *v1.Delete
 // ValidateGetUserRequest 校验 GetUserRequest 结构体的有效性.
 func (v *Validator) ValidateGetUserRequest(ctx context.Context, rq *v1.GetUserRequest) error {
 	if rq.GetUserID() != contextx.UserID(ctx) {
-		return errno.ErrPermissionDenied.WithMessage("The logged-in user `%s` does not match request user `%s`", contextx.UserID(ctx), rq.GetUserID())
+		return errno.ErrPermissionDenied.WithMessage(fmt.Sprintf("The logged-in user `%s` does not match request user `%s`", contextx.UserID(ctx), rq.GetUserID()))
 	}
 	return genericvalidation.ValidateAllFields(rq, v.ValidateUserRules())
 }

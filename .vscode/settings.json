@@ -1,12 +1,5 @@
 {
-    "protoc": {
-        "path": "protoc",
-        "compile_on_save": false,
-        "options": [
-            "--proto_path=${workspaceFolder}/pkg/api",
-            "--proto_path=${workspaceFolder}/third_party/protobuf"
-        ]
-    },
+    "protobuf.protoc.path": "protoc",
     "[proto3]": {
         "editor.defaultFormatter": "vscode-proto3.protoc"
     },
@@ -21,6 +14,7 @@
         "coverprofile",
         "favadi",
         "genericapiserver",
+        "genericvalidation",
         "golangci",
         "healthz",
         "logtostderr",

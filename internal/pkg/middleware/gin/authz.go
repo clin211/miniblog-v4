@@ -1,6 +1,7 @@
 package gin
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
@@ -28,12 +29,12 @@ func AuthzMiddleware(authorizer Authorizer) gin.HandlerFunc {
 		// 调用授权接口进行验证
 		if allowed, err := authorizer.Authorize(subject, object, action); err != nil || !allowed {
 			core.WriteResponse(c, nil, errno.ErrPermissionDenied.WithMessage(
-				"access denied: subject=%s, object=%s, action=%s, reason=%v",
-				subject,
-				object,
-				action,
-				err,
-			))
+				fmt.Sprintf("access denied: subject=%s, object=%s, action=%s, reason=%v",
+					subject,
+					object,
+					action,
+					err,
+				)))
 			c.Abort()
 			return
 		}

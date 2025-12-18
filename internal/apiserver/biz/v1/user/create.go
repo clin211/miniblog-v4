@@ -23,7 +23,7 @@ func (b *userBiz) Create(ctx context.Context, rq *v1.CreateUserRequest) (*v1.Cre
 
 	if _, err := b.authz.AddGroupingPolicy(userM.UserID, known.RoleUser); err != nil {
 		slog.ErrorContext(ctx, "Failed to add grouping policy for user", "user", userM.UserID, "role", known.RoleUser, "error", err)
-		return nil, errno.ErrAddRole.WithMessage("%s", err.Error())
+		return nil, errno.ErrAddRole.WithMessage(err.Error())
 	}
 
 	return &v1.CreateUserResponse{UserID: userM.UserID}, nil

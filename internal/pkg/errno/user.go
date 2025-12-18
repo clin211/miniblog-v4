@@ -1,29 +1,69 @@
 package errno
 
 import (
-	"net/http"
-
 	"github.com/clin211/miniblog-v4/pkg/errorsx"
 )
 
 var (
-	// ErrUsernameInvalid indicates that the username is invalid.
-	ErrUsernameInvalid = &errorsx.ErrorX{
-		Code:    http.StatusBadRequest,
-		Reason:  "InvalidArgument.UsernameInvalid",
-		Message: "Invalid username: Username must consist of letters, digits, and underscores only, and its length must be between 3 and 20 characters.",
-	}
+	// 用户相关错误
+	ErrUsernameInvalid = errorsx.NewBizError(
+		errorsx.CodeUserInvalidUsername,
+		"User.UsernameInvalid",
+		"Invalid username: Username must consist of letters, digits, and underscores only, and its length must be between 3 and 20 characters.",
+	)
 
-	// ErrPasswordInvalid indicates that the password is invalid.
-	ErrPasswordInvalid = &errorsx.ErrorX{
-		Code:    http.StatusBadRequest,
-		Reason:  "InvalidArgument.PasswordInvalid",
-		Message: "Password is incorrect.",
-	}
+	ErrPasswordInvalid = errorsx.NewBizError(
+		errorsx.CodeUserInvalidPassword,
+		"User.PasswordInvalid",
+		"Password is incorrect.",
+	)
 
-	// ErrUserAlreadyExists indicates that the user already exists.
-	ErrUserAlreadyExists = &errorsx.ErrorX{Code: http.StatusBadRequest, Reason: "AlreadyExist.UserAlreadyExists", Message: "User already exists."}
+	ErrUserAlreadyExists = errorsx.NewBizError(
+		errorsx.CodeUserAlreadyExists,
+		"User.AlreadyExists",
+		"User already exists.",
+	)
 
-	// ErrUserNotFound indicates that the specified user was not found.
-	ErrUserNotFound = &errorsx.ErrorX{Code: http.StatusNotFound, Reason: "NotFound.UserNotFound", Message: "User not found."}
+	ErrUserNotFound = errorsx.NewBizError(
+		errorsx.CodeUserNotFound,
+		"User.NotFound",
+		"User not found.",
+	)
+
+	// 新增更多用户相关错误
+	ErrUserDisabled = errorsx.NewBizError(
+		errorsx.CodeUserPermissionDenied,
+		"User.Disabled",
+		"User account has been disabled.",
+	)
+
+	ErrUserLocked = errorsx.NewBizError(
+		errorsx.CodeUserPermissionDenied,
+		"User.Locked",
+		"User account has been locked due to multiple failed login attempts.",
+	)
+
+	ErrUserPasswordExpired = errorsx.NewBizError(
+		errorsx.CodeUserInvalidCredentials,
+		"User.PasswordExpired",
+		"User password has expired, please reset your password.",
+	)
+
+	ErrUserInsufficientBalance = errorsx.NewBizError(
+		errorsx.CodeUserInsufficientBalance,
+		"User.InsufficientBalance",
+		"User balance is insufficient for this operation.",
+	)
+
+	ErrUserEmailAlreadyVerified = errorsx.NewBizError(
+		errorsx.CodeUserAlreadyExists,
+		"User.EmailAlreadyVerified",
+		"User email has already been verified.",
+	)
+
+	ErrUserEmailVerificationExpired = errorsx.NewBizError(
+		errorsx.CodeUserInvalidCredentials,
+		"User.EmailVerificationExpired",
+		"Email verification token has expired.",
+	)
 )
