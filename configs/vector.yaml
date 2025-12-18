@@ -1,0 +1,67 @@
+# Vector 配置 - 日志收集
+
+# 数据源
+sources:
+  # 接收应用日志文件
+  app_logs:
+    type: file
+    include:
+      - "/var/log/app/*.log"
+    read_from: beginning
+    ignore_older_secs: 86400  # 只处理24小时内的日志
+
+  # 接收 syslog
+  syslog:
+    type: syslog
+    address: "0.0.0.0:6000"
+    mode: tcp
+
+# 数据转换
+transforms:
+  # 解析 JSON 日志
+  parse_json_logs:
+    type: remap
+    inputs: ["app_logs"]
+    source: |
+      # 尝试解析 JSON
+      if exists(.message) {
+        . = parse_json(.message) ?? .
+      }
+
+      # 添加时间戳
+      .timestamp = parse_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ") ?? now()
+
+      # 添加服务信息
+      .service_name = "blog-apiserver"
+      .environment = "development"
+
+      # 清理字段
+      del(.file)
+      del(.source_type)
+
+  # 处理 syslog 日志
+  parse_syslog:
+    type: remap
+    inputs: ["syslog"]
+    source: |
+      .service_name = "blog-apiserver"
+      .environment = "development"
+      .log_source = "syslog"
+
+# 数据输出
+sinks:
+  # 输出到控制台（调试用）
+  console:
+    type: console
+    inputs: ["parse_json_logs", "parse_syslog"]
+    encoding:
+      codec: json
+    target: stdout
+
+  # 输出到 VictoriaMetrics（如果需要）
+  victoria_metrics_logs:
+    type: prometheus_remote_write
+    inputs: ["parse_json_logs"]
+    endpoint: http://victoria-metrics:8428/api/v1/write
+    healthcheck:
+      enabled: true

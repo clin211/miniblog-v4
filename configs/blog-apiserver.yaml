@@ -28,12 +28,30 @@ redis: # Redis 数据库相关配置
 otel:
   endpoint: 127.0.0.1:4327
   service-name: blog-apiserver
-  output-mode: file # 支持 otel、console、file、slog
-  level: debug
-  add-source: true
-  use-prometheus-endpoint: true
+  service-version: "1.0.0"
+  environment: "development"
+  # 采样配置
+  sampler:
+    type: probabilistic
+    param: 1.0  # 100% 采样，生产环境建议 0.1
+  # 指标配置
+  metrics:
+    port: 5556  # Prometheus metrics 端口
+    path: /metrics
+    interval: 15s
+  # 追踪配置
+  trace:
+    batch_size: 512
+    batch_timeout: 5s
+    export_timeout: 30s
+  # 资源属性
+  resource:
+    deployment.environment: "development"
+    service.instance.id: "blog-apiserver-1"
+    host.name: "localhost"
+  # 日志配置
   slog:
-    # 改配置项只有 output-mod 为 slog 时生效
-    format: text
-    time-format: "2006-01-02 15:04:05"
-    output: ./_output/im-apiserver.log # 支持 stdout, stderr, or file path
+    level: info
+    format: json  # 使用 JSON 格式便于分析
+    output: ./_output/blog-apiserver.log
+    add-source: true

@@ -1,0 +1,121 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MiniBlog v4 - 服务总览",
+    "tags": ["miniblog", "go", "overview"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "HTTP 请求率",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_requests_total{service=\"blog-apiserver\"}[5m])) by (method, status)",
+            "legendFormat": "{{method}} {{status}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 2,
+        "title": "HTTP 延迟",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{service=\"blog-apiserver\"}[5m])) by (le))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{service=\"blog-apiserver\"}[5m])) by (le))",
+            "legendFormat": "50th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 3,
+        "title": "错误率",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_requests_total{service=\"blog-apiserver\",status=~\"5..\"}[5m])) / sum(rate(http_server_requests_total{service=\"blog-apiserver\"}[5m])) * 100",
+            "legendFormat": "Error Rate %"
+          }
+        ],
+        "valueMaps": [
+          {
+            "value": "null",
+            "text": "N/A"
+          }
+        ],
+        "thresholds": "1,5,10",
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 6,
+          "h": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "活跃协程数",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "go_goroutines{service=\"blog-apiserver\"}",
+            "legendFormat": "Goroutines"
+          }
+        ],
+        "gridPos": {
+          "x": 6,
+          "y": 8,
+          "w": 6,
+          "h": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "内存使用",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{service=\"blog-apiserver\"} / 1024 / 1024",
+            "legendFormat": "RSS Memory (MB)"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  }
+}

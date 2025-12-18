@@ -37,6 +37,7 @@ graph LR
 ```
 
 **问题**：
+
 - 每个应用需要配置多个后端
 - 网络连接复杂
 - 格式不统一
@@ -56,6 +57,7 @@ graph LR
 ```
 
 **优势**：
+
 - 应用只需对接一个 Collector
 - 统一的数据格式（OTLP）
 - 灵活的数据处理
@@ -77,6 +79,7 @@ graph TD
 ```
 
 #### 1. Receivers（接收器）
+
 负责接收遥测数据，支持多种协议：
 
 | 类型 | 协议 | 端口 | 用途 |
@@ -88,6 +91,7 @@ graph TD
 | Zipkin | HTTP | 多种 | 兼容 Zipkin |
 
 #### 2. Processors（处理器）
+
 对接收的数据进行处理：
 
 | 处理器 | 功能 | 使用场景 |
@@ -99,6 +103,7 @@ graph TD
 | `attributes` | 属性操作 | 添加、删除、修改属性 |
 
 #### 3. Exporters（导出器）
+
 将处理后的数据发送到后端：
 
 | 导出器 | 后端 | 用途 |
@@ -110,6 +115,7 @@ graph TD
 | `elasticsearch` | Elasticsearch | 日志存储 |
 
 #### 4. Extensions（扩展）
+
 提供额外功能：
 
 | 扩展 | 功能 |
@@ -217,11 +223,13 @@ otel:
 ### 1. 开发调试场景（当前配置）
 
 **特点**：
+
 - 数据输出到日志，便于查看
 - 配置简单，快速上手
 - 适合开发环境和测试
 
 **用途**：
+
 - 验证遥测数据是否正常生成
 - 调试数据格式和内容
 - 性能测试和优化
@@ -282,18 +290,21 @@ graph TD
 **排查步骤**：
 
 1. 检查应用配置
+
 ```bash
 # 确保应用配置正确
 grep -n "otel" configs/blog-apiserver.yaml
 ```
 
 2. 检查网络连通性
+
 ```bash
 # 测试 gRPC 端口
 nc -z localhost 4327
 ```
 
 3. 检查 Collector 日志
+
 ```bash
 docker logs miniblog-otel-collector -f
 ```
@@ -303,6 +314,7 @@ docker logs miniblog-otel-collector -f
 **解决方案**：
 
 1. 启用采样
+
 ```yaml
 # 应用端配置
 otel:
@@ -312,6 +324,7 @@ otel:
 ```
 
 2. 调整批处理参数
+
 ```yaml
 processors:
   batch:
@@ -322,6 +335,7 @@ processors:
 ### Q3: 如何添加自定义属性？
 
 **方法 1：在 Collector 中添加**
+
 ```yaml
 processors:
   resource:
@@ -332,6 +346,7 @@ processors:
 ```
 
 **方法 2：在应用代码中添加**
+
 ```go
 // 在应用启动时添加资源属性
 otel.SetTextMapPropagator(propagation.TraceContext{})
@@ -457,25 +472,194 @@ processors:
     check_interval: 5s
 ```
 
+## 架构升级：现代化可观测性栈
+
+MiniBlog v4 已经升级到现代化的可观测性架构：
+
+### 新技术栈
+
+| 组件 | 技术选型 | 优势 |
+|------|----------|------|
+| **追踪存储** | Grafana Tempo | 轻量级、无需对象存储、原生 Grafana 集成 |
+| **指标存储** | VictoriaMetrics | 高性能、低资源消耗、兼容 Prometheus API |
+| **可视化** | Grafana | 统一界面、强大的查询和仪表板能力 |
+| **数据管道** | OpenTelemetry Collector | 统一数据入口、强大的处理能力 |
+
+### 快速开始
+
+```bash
+# 启动可观测性平台
+make observability.start
+
+# 构建并启动应用
+make build BINS=blog-apiserver
+./_output/platforms/$(go env GOOS)/$(go env GOARCH)/blog-apiserver \
+  --config configs/blog-apiserver.yaml
+
+# 访问界面
+# Grafana: http://localhost:3000 (admin/admin123)
+# VictoriaMetrics: http://localhost:8428
+# Tempo: http://localhost:3200
+```
+
+### 架构图
+
+```mermaid
+graph TD
+    A[Go应用] -->|OTLP| B[OTEL Collector]
+
+    B -->|OTLP| C[Grafana Tempo]
+    B -->|Prometheus| D[VictoriaMetrics]
+
+    C -->|本地存储| E[追踪数据]
+    D -->|本地存储| F[指标数据]
+
+    G[Grafana] -->|查询| C
+    G -->|查询| D
+
+    H[应用日志] --> I[Vector] -->|可选| G
+```
+
+### 新架构特性
+
+#### 1. Grafana Tempo - 分布式追踪
+
+- **本地存储**：无需配置对象存储
+- **高性能**：优化的存储格式
+- **原生集成**：与 Grafana 无缝集成
+- **兼容性**：支持 Jaeger、OTLP 协议
+
+#### 2. VictoriaMetrics - 指标存储
+
+- **高性能**：比 Prometheus 资源消耗更低
+- **数据压缩**：高效的数据压缩算法
+- **兼容性**：完全兼容 Prometheus API
+- **易扩展**：支持水平扩展
+
+#### 3. 统一的可视化
+
+- **一站式界面**：所有数据在 Grafana 中查看
+- **关联分析**：追踪、指标、日志相互关联
+- **丰富的仪表板**：预置的监控仪表板
+
+## 配置迁移指南
+
+### 从旧配置迁移
+
+如果你之前使用的是基础的 OTEL Collector 配置，迁移步骤：
+
+1. **备份现有配置**
+
+```bash
+cp otel-collector.yaml configs/otel-collector.backup.yaml
+```
+
+2. **更新应用配置**
+新的配置格式支持更多选项，参考 [`configs/blog-apiserver.yaml`](../configs/blog-apiserver.yaml)
+
+3. **启动新栈**
+
+```bash
+make observability.start
+```
+
+### 配置文件说明
+
+- [`docker-compose.observability.yml`](../docker-compose.observability.yml) - 完整的可观测性服务
+- [`configs/otel-collector.yaml`](../configs/otel-collector.yaml) - Collector 配置
+- [`configs/tempo.yaml`](../configs/tempo.yaml) - Tempo 配置
+- [`configs/grafana/datasources/`](../configs/grafana/datasources/) - Grafana 数据源配置
+
+## 监控最佳实践
+
+### 1. 追踪监控
+
+```go
+// 在代码中添加自定义追踪
+tracer := otel.Tracer("blog-apiserver")
+ctx, span := tracer.Start(ctx, "user-login")
+defer span.End()
+
+// 设置属性
+span.SetAttributes(
+    attribute.String("user.id", userID),
+    attribute.String("user.ip", clientIP),
+)
+
+// 记录事件
+span.AddEvent("authentication-success",
+    trace.WithAttributes(attribute.Bool("success", true)))
+```
+
+### 2. 指标监控
+
+```go
+// 创建自定义指标
+counter := otel.Meter("blog-apiserver").
+    NewInt64Counter("user_login_total")
+```
+
+### 3. 日志结构化
+
+```yaml
+# 使用 JSON 格式日志
+log:
+  format: json
+  level: info
+  add-source: true
+```
+
+## 故障排查
+
+### 常见问题
+
+1. **Collector 没有收到数据**
+
+```bash
+# 检查服务状态
+docker compose -f docker-compose.observability.yml ps
+
+# 查看日志
+make observability.logs
+```
+
+2. **Tempo 没有追踪数据**
+
+- 检查采样率配置
+- 确认应用正确发送追踪数据
+- 验证 Collector 到 Tempo 的连接
+
+3. **VictoriaMetrics 指标缺失**
+
+- 检查 Prometheus 导出器配置
+- 验证指标路径是否正确
+- 确认时间范围设置
+
+### 性能优化
+
+1. **采样策略**：生产环境使用 10% 采样率
+2. **批处理大小**：根据流量调整批处理参数
+3. **资源限制**：合理设置内存和 CPU 限制
+
 ## 总结
 
-OpenTelemetry Collector 是现代可观测性架构的关键组件，它：
+新的可观测性架构为 MiniBlog v4 提供了：
 
-1. **简化了应用集成**：统一的 OTLP 协议
-2. **提供了灵活的数据处理**：过滤、转换、聚合
-3. **支持多种后端**：Jaeger、Prometheus、ELK 等
-4. **提高了系统可靠性**：缓冲、重试、限流
+1. **现代化的技术栈**：Tempo + VictoriaMetrics + Grafana
+2. **高性能存储**：优化的数据存储和查询
+3. **统一的体验**：一站式可观测性平台
+4. **易于扩展**：支持水平扩展和多租户
 
-对于你的 miniblog-v4 项目，当前的配置主要用于开发调试。随着业务发展，你可以逐步添加更多后端（如 Jaeger 用于分布式追踪，Prometheus 用于指标监控），构建完整的可观测性体系。
+这套架构为你的微服务应用提供了完整的可观测性能力，帮助你更好地理解系统行为、快速定位问题。
 
 ## 下一步建议
 
-1. **学习**：了解 OpenTelemetry 数据模型
-2. **实践**：在应用中添加自定义指标和追踪
-3. **扩展**：添加 Jaeger 和 Prometheus 后端
-4. **监控**：设置 Collector 的监控和告警
-5. **优化**：根据实际流量调整性能参数
+1. **立即体验**：`make observability.start`
+2. **学习 Grafana**：创建自定义仪表板
+3. **深入追踪**：添加分布式追踪到关键业务流程
+4. **告警设置**：配置基于指标的告警规则
+5. **生产部署**：为生产环境调整配置参数
 
 ---
 
-> 💡 **提示**：本文档会随着项目发展持续更新。如有问题或建议，请提交 Issue 或 PR。
+> 💡 **提示**：新架构配置文件已就绪，你可以直接使用 `make observability.start` 启动完整的可观测性平台！

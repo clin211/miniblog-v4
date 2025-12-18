@@ -1,0 +1,133 @@
+services:
+  # OpenTelemetry Collector - 数据收集和处理
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.97.0
+    container_name: miniblog-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    ports:
+      - "4327:4327"   # OTLP gRPC 接收
+      - "4328:4328"   # OTLP HTTP 接收
+      - "13133:13133" # Collector 健康检查
+    volumes:
+      - ./configs/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    depends_on:
+      - tempo
+      - victoria-metrics
+    networks:
+      - miniblog-observability
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Grafana Tempo - 分布式追踪
+  tempo:
+    image: grafana/tempo:2.4.0
+    container_name: miniblog-tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yaml"]
+    ports:
+      - "14268:14268"  # Jaeger兼容接收器
+      - "3200:3200"    # Tempo UI (可选)
+      - "4319:4319"    # OTLP gRPC (可选)
+      - "9095:9095"    # Tempo查询
+    volumes:
+      - ./configs/tempo.yaml:/etc/tempo.yaml:ro
+      - ./data/tempo:/tmp/tempo
+    networks:
+      - miniblog-observability
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # VictoriaMetrics - 指标存储
+  victoria-metrics:
+    image: victoriametrics/victoria-metrics:v1.97.0
+    container_name: miniblog-victoria-metrics
+    restart: unless-stopped
+    ports:
+      - "8428:8428"    # HTTP API
+      - "8429:8429"    # Ingestion
+    volumes:
+      - ./data/victoria-metrics:/victoria-metrics-data
+    command:
+      - "--storageDataPath=/victoria-metrics-data"
+      - "--httpListenAddr=:8428"
+      - "--opentsdbListenAddr=:8429"
+      - "--retentionPeriod=30"  # 保留30天
+      - "--memory.allowedPercent=60"  # 限制内存使用
+    networks:
+      - miniblog-observability
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Grafana - 可视化平台
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: miniblog-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./configs/grafana:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    depends_on:
+      - tempo
+      - victoria-metrics
+    networks:
+      - miniblog-observability
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Vector - 日志收集（可选）
+  vector:
+    image: timberio/vector:0.36.0-alpine
+    container_name: miniblog-vector
+    restart: unless-stopped
+    volumes:
+      - ./configs/vector.yaml:/etc/vector/vector.yaml:ro
+      - ./logs:/var/log/app:ro
+      - ./data/vector:/data/vector
+    ports:
+      - "8686:8686"   # Vector API
+      - "6000:6000"   # Syslog 接收
+    networks:
+      - miniblog-observability
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  miniblog-observability:
+    driver: bridge
+
+volumes:
+  tempo:
+  victoria-metrics:
+  grafana:
+  vector:

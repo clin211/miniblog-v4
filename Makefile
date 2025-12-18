@@ -232,6 +232,46 @@ deps: ## Install build and codegen tools.
 generate: ## Generate code for all packages using go:generate directives (recursively ./...)
 	@go generate ./...
 
+# Start all services (infra + observability)
+start:
+	@echo "🚀 启动完整环境..."
+	./scripts/start-all.sh
+
+# Stop all services
+stop:
+	@echo "🛑 停止所有服务..."
+	./scripts/stop-all.sh
+
+# Restart all services
+restart: stop start
+
+# Start only infrastructure services
+infra.start:
+	@echo "🗄️ 启动基础服务..."
+	docker compose -f docker-compose.env.yml up -d
+
+# Stop only infrastructure services
+infra.stop:
+	@echo "🛑 停止基础服务..."
+	docker compose -f docker-compose.env.yml down
+
+# Start observability stack
+observability.start:
+	@echo "🚀 启动可观测性平台..."
+	./scripts/start-observability.sh
+
+# Stop observability stack
+observability.stop:
+	@echo "🛑 停止可观测性平台..."
+	docker compose -f docker-compose.observability.yml down
+
+# Restart observability stack
+observability.restart: observability.stop observability.start
+
+# View observability logs
+observability.logs:
+	docker compose -f docker-compose.observability.yml logs -f
+
 help: Makefile  ## Show available targets and usage.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<TARGETS> <OPTIONS>\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-45s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/{ printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' Makefile #$(MAKEFILE_LIST)
 	@echo "$$USAGE_OPTIONS"

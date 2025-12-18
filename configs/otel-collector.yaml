@@ -1,0 +1,84 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4327
+      http:
+        endpoint: 0.0.0.0:4328
+
+  # 接收 Prometheus 格式的指标
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'blog-apiserver'
+          static_configs:
+            - targets: ['host.docker.internal:5556']  # 应用端口
+          scrape_interval: 15s
+          metrics_path: /metrics
+
+processors:
+  batch:
+    timeout: 200ms
+    send_batch_size: 8192
+
+  # 添加资源属性
+  resource:
+    attributes:
+      - key: environment
+        value: development
+        action: upsert
+      - key: service.version
+        value: "1.0.0"
+        action: upsert
+
+  # 内存限制
+  memory_limiter:
+    limit_mib: 512
+    spike_limit_mib: 128
+    check_interval: 5s
+
+exporters:
+  # 导出追踪数据到 Tempo
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # 导出指标到 VictoriaMetrics
+  prometheusremotewrite/victoria-metrics:
+    endpoint: http://victoria-metrics:8428/api/v1/write
+    tls:
+      insecure: true
+
+  # 调试输出（可选）
+  logging:
+    loglevel: info
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  pprof:
+    endpoint: 0.0.0.0:1888
+
+service:
+  extensions: [health_check, pprof]
+
+  pipelines:
+    # 追踪数据管道
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlp/tempo, logging]
+
+    # 指标数据管道
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, batch, resource]
+      exporters: [prometheusremotewrite/victoria-metrics, logging]
+
+    # 日志数据管道（如果需要）
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [logging]
