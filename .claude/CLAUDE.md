@@ -1,280 +1,174 @@
-# CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# [miniblog-v4] Go项目AI Agent协作指南
 
-## 语言要求
+你是一位精通Go语言的资深软件工程师，熟悉云原生开发与软件工程最佳实践。你的任务是协助我，以高质量、可维护的方式完成本项目的开发。
 
-请始终使用简体中文与我对话，并在回答时保持专业、简洁。
+---
 
-## Project Overview
+## 1. 语言与交流要求（Language & Communication Requirements）
 
-miniblog-v4 is a modern microservice blog backend API server built with Go, following clean architecture principles. It uses Gin for HTTP routing, GORM for database operations, JWT for authentication, Casbin for authorization, and OpenTelemetry for observability.
+* 使用 **Go 1.25+** 开发
+* 对话和文档(**技术文档不写具体逻辑实现**)统一 **简体中文**
+* 保持专业、简洁，代码注释清晰
 
-## Development Commands
+---
 
-### Build and Development Workflow
+## 2. 项目概述（Project Overview）
+
+* 微服务博客后端 API，使用 **Gin + GORM + JWT + Casbin + OpenTelemetry**
+* 核心理念：**整洁架构 + 模块化 + 可观测性**
+* 目录结构：
+
+  ```tree
+  cmd/                 # 主应用入口
+  internal/apiserver/  # 核心业务逻辑（handler/biz/store/model）
+  pkg/                 # 可复用库
+  configs/             # 配置文件
+  build/docker/        # Docker 配置
+  ```
+
+* 依赖注入使用 **Google Wire**
+* 详细的项目介绍在 @./README.md 中
+
+---
+
+## 3. 开发命令（Development Commands）
+
+### 环境准备
 
 ```bash
-# Install development tools
-make deps
-
-# Generate protobuf code
-make protoc
-
-# Sync dependencies
-make tidy
-
-# Format code
-make format
-
-# Generate code (go:generate directives)
-make generate
-
-# Build all binaries
-make build
-
-# Build specific binary
-make build BINS=blog-apiserver
-
-# Run tests with coverage
-make test
-make cover
-
-# Run linting
-make lint
-
-# Build for multiple platforms
-make build.multiarch
-
-# Build Docker images
-make image
-
-# Build specific Docker image
-make image PLATFORM=linux_amd64 VERSION=v1.0.0 IMAGES=blog-apiserver
+make deps     # 安装依赖
+make tidy     # 同步依赖
 ```
 
-### Local Development
+### 代码生成
 
 ```bash
-# Start dependencies (PostgreSQL, Redis, OTEL Collector)
-docker compose -f docker-compose.env.yml up -d
+make protoc    # 生成 protobuf
+make generate  # 生成 Wire 等代码
+```
 
-# Build and run locally
-make build BINS=blog-apiserver
+### 构建与运行
+
+```bash
+make build                   # 构建所有二进制
+make build BINS=blog-apiserver # 构建特定服务
+make image IMAGES=blog-apiserver # 构建 Docker 镜像
+```
+
+### 测试与检查
+
+```bash
+make test     # 单元测试
+make cover    # 测试覆盖率
+make lint     # 静态检查
+go test -bench=. ./... # 基准测试
+```
+
+### 本地开发
+
+```bash
+docker compose -f docker-compose.env.yml up -d # 启动依赖
 _output/platforms/$(go env GOOS)/$(go env GOARCH)/blog-apiserver --config configs/blog-apiserver.yaml
-
-# Build and run with Docker
-make image IMAGES=blog-apiserver
-cd build/docker/blog-apiserver
-docker compose up -d
 ```
 
-### Testing
+---
 
-```bash
-# Run all tests
-make test
+## 4. 架构概览（Architecture Overview）
 
-# Run tests with coverage
-make cover
-
-# Run specific test
-go test -v ./internal/apiserver/biz/v1/user/
-
-# Run benchmark tests
-go test -bench=. ./...
-
-# Run integration tests (requires running dependencies)
-go test -tags=integration ./...
+```
+Handler (HTTP层)     -> internal/apiserver/handler/
+Biz     (业务逻辑)   -> internal/apiserver/biz/
+Store   (数据访问)   -> internal/apiserver/store/
+Model   (数据库模型) -> internal/apiserver/model/
 ```
 
-## Architecture Overview
+* **依赖注入**: `internal/apiserver/wire.go`
+* **数据库**: PostgreSQL + Redis
+* **认证**: JWT
+* **授权**: Casbin
+* **可观测性**: OpenTelemetry + Prometheus + slog 日志
 
-The project follows **Clean Architecture** with clear separation of concerns:
+---
 
-### Core Layers
+## 5. 配置管理（Configuration Management）
 
-1. **Handler Layer** (`internal/apiserver/handler/`) - HTTP handlers/controllers
-2. **Business Logic Layer** (`internal/apiserver/biz/`) - Use cases and business rules
-3. **Store Layer** (`internal/apiserver/store/`) - Data access/repositories
-4. **Model Layer** (`internal/apiserver/model/`) - GORM entities and data models
+* `configs/blog-apiserver.yaml` - 本地
+* `configs/blog-apiserver.docker.yaml` - Docker
+* 核心配置：
 
-### Key Directories
+  * HTTP: `addr`, `timeout`
+  * PostgreSQL / Redis: 连接信息 + 池配置
+  * OTEL: `endpoint`, `service-name`, `output-mode`
 
-- `cmd/blog-apiserver/` - Main application entry point
-- `internal/apiserver/` - Core server implementation (private)
-- `pkg/` - Reusable libraries (can be used externally)
-- `configs/` - Configuration files
-- `build/docker/` - Docker configurations
+> 建议：尽量通过 **结构体绑定 + viper** 获取配置，避免硬编码。
 
-### Dependency Injection
+---
 
-Uses Google Wire for compile-time dependency injection. See `internal/apiserver/wire.go` for the DI setup.
+## 6. 开发规范（Coding Standards）
 
-## Database and Models
+| 方面   | 规范 |
+| ---- | ---------------------------------------------- |
+| 错误处理 | 必须使用 `fmt.Errorf("...: %w", err)` 包装 |
+| 日志   | 使用 `log/slog` 结构化日志，记录 `traceID`、`userID` 等上下文 |
+| 接口   | 接口应由消费者定义，遵循单一职责原则 |
+| 并发   | 明确并发安全措施，如 `mutex` 或 `channel` |
+| 测试   | 优先表格驱动测试（Table-Driven Tests） |
+| 代码格式 | `gofmt + goimports + golangci-lint` |
 
-### Database Setup
+---
 
-- **Primary**: PostgreSQL (configurable for MySQL, SQLite)
-- **Cache**: Redis
-- **ORM**: GORM v2 with automatic migrations
-- **Connection Pooling**: Configurable max idle/open connections
+## 7. 常见开发任务（Common Development Tasks）
 
-### Model Location
+* **新增 API 端点**: `handler → biz → store → model`
+* **数据库变更**: 更新 GORM 模型，使用 AutoMigrate
+* **中间件注册**: `internal/apiserver/httpserver.go`
+* **配置变更**: 更新配置结构体 + YAML 文件
 
-GORM models are in `internal/apiserver/model/`. The project uses GORM hooks for validation and follows Go naming conventions.
+---
 
-### Migration
+## 8. 如何新增资源（How to Add a Resource）
 
-Database migrations are handled automatically by GORM AutoMigrate on server startup.
+因为整个项目非常规范，所以可以快速添加一个新的 REST 资源。新增 REST 资源时，需要先给 REST 资源起以下几个名字：
 
-## API Structure
+* 类型：资源的类型名称，例如 Post，使用大写驼峰格式；
+* 单数：资源的单数形式，例如 post，使用小写驼峰格式，首字母小写；
+* 复数：资源的复数形式，例如 posts，使用小写驼峰格式，首字母小写。
 
-### REST API Design
+这里假设需要新增一个 Comment 资源，用来记录博客的评论，并将这些记录保存在数据库中。可以按以下顺序来实现 Comment 资源相关的功能代码：
 
-- Base URL: `http://localhost:5556`
-- Health check: `GET /healthz`
-- User management: `POST /v1/users`, `POST /login`
-- Metrics: `GET /metrics`
-- Debug: `/debug/pprof/*`
+1. 定义 API 接口(`pkg/api/apiserver/v1/apiserver.proto`)；
+2. 编译 `Protobuf` 文件(`pkg/api/apiserver/v1`)；
+3. 在 `/internal/template/model` 重定义数据库接口；
+4. 完善 API 接口请求参数的默认值设置方法（使用`third_party/protobuf/github.com/onexstack/defaults/defaults.proto`）；
+5. 实现 API 接口的请求参数校验方法（在文件 `internal/apiserver/pkg/validation/comment.go` 中实现）；
+6. 实现 `Comment` 资源的 `Store` 层代码（在文件 `internal/apiserver/store/comment.go` 中实现）；
+7. 实现 `Comment` 资源的 `Model` 和 `Proto` 的转换函数（在 `internal/apiserver/pkg/conversion/comment.go` 文件中实现）；
+8. 实现 `Comment` 资源的 `Biz` 层代码（在文件 `internal/apiserver/biz/v1/comment/comment.go` 中实现）；
+9. 实现 `Comment` 资源的 `Handler` 层代码（在文件 `internal/apiserver/handler/comment.go` 中实现）。
 
-### Middleware Stack
+> 推荐按顺序执行，每步完成后进行单元测试。
 
-1. Recovery (panic handling)
-2. Request ID tracking
-3. CORS
-4. Authentication (JWT)
-5. Authorization (Casbin RBAC)
-6. Metrics collection
-7. Distributed tracing
+---
 
-### Authentication/Authorization
+## 9. AI协作指令 (AI Collaboration Directives)
 
-- **JWT**: Token-based authentication with configurable expiration
-- **Casbin**: RBAC authorization with policy-based access control
-- **Middleware**: Automatic token validation and policy enforcement
+* **[原则] 优先标准库**: 在有合理的标准库解决方案时，优先使用标准库，而不是引入新的第三方依赖。
+* **[流程] 审查优先**: 当被要求实现一个新功能时，你的第一步应该是先用`@`指令阅读相关代码，理解现有逻辑，然后以列表形式提出你的实现计划，待我确认后再开始编码。
+* **[实践] 表格驱动测试**: 当被要求编写测试时，你必须优先编写**表格驱动测试（Table-Driven Tests）**，这是本项目推崇的测试风格。
+* **[实践] 并发安全**: 当你的代码中涉及到并发（goroutines, channels）时，**必须**明确指出潜在的竞态条件风险，并解释你所使用的并发安全措施（如mutex, channel）。
+* **[产出] 解释代码**: 在生成任何复杂的代码片段后，请用注释或在对话中，简要解释其核心逻辑和设计思想。
 
-## Configuration
+---
 
-### Configuration Files
+## 10. Git 与版本控制 (Git & Version Control)
 
-- `configs/blog-apiserver.yaml` - Local development
-- `configs/blog-apiserver.docker.yaml` - Docker development
-- `configs/blog-apiserver.prod.yaml.example` - Production template
+* **Commit Message规范**: **[严格遵循]** Conventional Commits 规范
 
-### Key Configuration Sections
+  ```sh
+  <type>(<scope>): <subject>
+  ```
 
-```yaml
-addr: 0.0.0.0:5556          # Server address
-timeout: 30s                # Request timeout
-jwt-key: [secret]           # JWT signing key
-expiration: 7d              # Token expiration
-otel:                       # OpenTelemetry config
-  endpoint: 127.0.0.1:4327
-  service-name: blog-apiserver
-postgresql:                 # Database config
-  host: localhost
-  port: 54321
-  dbname: miniblog
-redis:                      # Redis config
-  addr: 127.0.0.1:56379
-```
-
-## Code Generation
-
-### Protocol Buffers
-
-```bash
-# Generate gRPC and protobuf code
-make protoc
-
-# Manual generation
-protoc --proto_path=pkg/api --go_out=. --go-grpc_out=. pkg/api/**/*.proto
-```
-
-### Dependency Injection
-
-```bash
-# Generate Wire code
-go generate ./internal/apiserver/
-```
-
-## Testing Strategy
-
-### Current State
-
-- Test coverage is currently low (target: 1% in Makefile)
-- Focus on adding unit tests for business logic (`biz/` layer)
-- Integration tests require running dependencies
-
-### Test Organization
-
-- Unit tests: `*_test.go` files alongside source code
-- Integration tests: Use `-tags=integration`
-- Example tests: `*_example_test.go` files
-
-## Observability
-
-### OpenTelemetry Integration
-
-- Distributed tracing with automatic context propagation
-- Metrics collection for Prometheus
-- Structured logging with slog
-- Request ID tracking across components
-
-### Key Endpoints
-
-- `/metrics` - Prometheus metrics
-- `/debug/pprof/` - Go profiling
-- Health checks with detailed status
-
-## Deployment
-
-### Docker Support
-
-- Multi-stage Dockerfile for minimal image size
-- Docker Compose for local development
-- Production-ready configurations with resource limits
-
-### Port Mappings
-
-- blog-apiserver: 5556 (host) → 5556 (container)
-- PostgreSQL: 54321 (host) → 5432 (container)
-- Redis: 56379 (host) → 6379 (container)
-- OTEL Collector: 4327, 4328, 13133 (host)
-
-## Development Guidelines
-
-### Code Organization
-
-- Follow Go project layout standards
-- Keep business logic separate from infrastructure concerns
-- Use dependency injection for testability
-- Implement proper error handling with custom error types
-
-### Best Practices
-
-- Use structured logging with slog
-- Implement proper context propagation
-- Follow Go naming conventions and idioms
-- Write comprehensive tests for business logic
-- Use middleware for cross-cutting concerns
-
-### Common Tasks
-
-- Adding new API endpoints: Create handler → biz → store → model
-- Database changes: Update model and let GORM AutoMigrate handle schema
-- Adding middleware: Register in `internal/apiserver/httpserver.go`
-- Configuration changes: Add to options struct and config files
-
-## Key Dependencies
-
-- **gin**: HTTP web framework
-- **gorm**: ORM for database operations
-- **jwt-go**: JWT token handling
-- **casbin**: Authorization framework
-- **wire**: Dependency injection
-- **otel**: OpenTelemetry observability
-- **cobra**: CLI framework
-- **viper**: Configuration management
-- **protobuf**: API definitions
+  * type: feat, fix, chore, docs...
+  * scope: 功能模块或服务名
+  * subject: 简明描述

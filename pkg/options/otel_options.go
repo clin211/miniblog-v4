@@ -71,7 +71,7 @@ func (f *outputModeFlag) Type() string   { return "string" }
 func (f *outputModeFlag) Set(s string) error {
 	mode := OutputMode(s)
 	if !mode.IsValid() {
-		return fmt.Errorf("invalid output mode: %s, valid options: otlp, console, file, slog", s)
+		return fmt.Errorf("invalid output mode: %s, valid options: otlp, console, file, classic, hybrid", s)
 	}
 	*f = outputModeFlag(mode)
 	return nil
@@ -214,7 +214,7 @@ func (o *OTelOptions) AddFlags(fs *pflag.FlagSet, fullPrefix string) {
 	fs.BoolVar(&o.Insecure, fullPrefix+".insecure", o.Insecure, "Use insecure connection")
 	fs.Float64Var(&o.SamplingRatio, fullPrefix+".sampling-ratio", o.SamplingRatio, "Sampling ratio (0.0-1.0)")
 	fs.BoolVar(&o.WithResource, fullPrefix+".with-resource", o.WithResource, "Include system resource information")
-	fs.Var((*outputModeFlag)(&o.OutputMode), fullPrefix+".output-mode", "Output mode: otlp, console, file, slog")
+	fs.Var((*outputModeFlag)(&o.OutputMode), fullPrefix+".output-mode", "Output mode: otlp, console, file, classic, hybrid")
 	fs.StringVar(&o.OutputDir, fullPrefix+".output-dir", o.OutputDir, "Output directory for file mode")
 	fs.StringVar(&o.Level, fullPrefix+".level", o.Level, "Log level: debug, info, warn, error")
 	fs.BoolVar(&o.AddSource, fullPrefix+".add-source", o.AddSource, "Add source code position to logs")
