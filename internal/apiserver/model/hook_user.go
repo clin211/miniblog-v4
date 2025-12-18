@@ -1,9 +1,9 @@
 package model
 
 import (
-	"github.com/onexstack/onexstack/pkg/authn"
-	"github.com/onexstack/onexstack/pkg/rid"
-	"github.com/onexstack/onexstack/pkg/store/registry"
+	"github.com/clin211/miniblog-v4/pkg/authn"
+	"github.com/clin211/miniblog-v4/pkg/rid"
+	"github.com/clin211/miniblog-v4/pkg/store/registry"
 	"gorm.io/gorm"
 )
 

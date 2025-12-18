@@ -4,7 +4,7 @@ import (
 	userv1 "github.com/clin211/miniblog-v4/internal/apiserver/biz/v1/user"
 	"github.com/clin211/miniblog-v4/internal/apiserver/store"
 	"github.com/google/wire"
-	"github.com/onexstack/onexstack/pkg/authz"
+	"github.com/clin211/miniblog-v4/pkg/authz"
 )
 
 // ProviderSet is a Wire provider set used to declare dependency injection rules.

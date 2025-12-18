@@ -5,11 +5,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/onexstack/onexstack/pkg/authz"
-	genericoptions "github.com/onexstack/onexstack/pkg/options"
-	"github.com/onexstack/onexstack/pkg/server"
-	"github.com/onexstack/onexstack/pkg/store/registry"
-	"github.com/onexstack/onexstack/pkg/store/where"
+	"github.com/clin211/miniblog-v4/pkg/authz"
+	genericoptions "github.com/clin211/miniblog-v4/pkg/options"
+	"github.com/clin211/miniblog-v4/pkg/server"
+	"github.com/clin211/miniblog-v4/pkg/store/registry"
+	"github.com/clin211/miniblog-v4/pkg/store/where"
 	"gorm.io/gorm"
 
 	"github.com/clin211/miniblog-v4/internal/apiserver/biz"

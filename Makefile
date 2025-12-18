@@ -20,7 +20,7 @@ COVERAGE := 1
 # Define version-related variables
 
 ## Specify the version package used by the application. Values will be injected into variables in this package using `-ldflags -X`.
-VERSION_PACKAGE=github.com/onexstack/onexstack/pkg/version
+VERSION_PACKAGE=github.com/clin211/miniblog-v4/pkg/version
 
 ## Check if current directory is a Git repository
 IS_GIT_REPO := $(shell git rev-parse --is-inside-work-tree 2>/dev/null)
@@ -57,7 +57,8 @@ ifeq ($(GOOS),windows)
 endif
 
 GO_BUILD_FLAGS += -ldflags "$(GO_LDFLAGS)"
-COMMANDS ?= $(filter-out %.md, $(wildcard $(PROJ_ROOT_DIR)/cmd/*))
+# 只构建 blog-apiserver，排除 gen-gorm-model 等工具
+COMMANDS ?= $(filter-out $(PROJ_ROOT_DIR)/cmd/gen-gorm-model, $(filter-out %.md, $(wildcard $(PROJ_ROOT_DIR)/cmd/*)))
 BINS ?= $(foreach cmd,${COMMANDS},$(notdir $(cmd)))
 IMAGES ?= $(filter-out tools, $(foreach dir, $(COMMANDS), $(notdir $(if $(wildcard $(dir)/*.go), $(dir),))))
 
@@ -95,7 +96,7 @@ all: deps protoc tidy format generate build cover
 define USAGE_OPTIONS
 
 Options:
-  BINS             The binary files to build. Defaults to all files in the `cmd` directory.
+  BINS             The binary files to build. Defaults to blog-apiserver only.
                    This option can be used with the following command: make build
                    Example: make build BINS=<BinaryName>
   IMAGES           Backend images to make. Defaults to all files in the `cmd` directory.

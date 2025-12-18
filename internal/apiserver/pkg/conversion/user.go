@@ -1,7 +1,7 @@
 package conversion
 
 import (
-	"github.com/onexstack/onexstack/pkg/core"
+	"github.com/clin211/miniblog-v4/pkg/core"
 
 	"github.com/clin211/miniblog-v4/internal/apiserver/model"
 	v1 "github.com/clin211/miniblog-v4/pkg/api/apiserver/v1"

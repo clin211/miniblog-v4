@@ -10,7 +10,7 @@ import (
 	"github.com/clin211/miniblog-v4/internal/apiserver/biz"
 	"github.com/clin211/miniblog-v4/internal/apiserver/pkg/validation"
 	"github.com/clin211/miniblog-v4/internal/apiserver/store"
-	"github.com/onexstack/onexstack/pkg/authz"
+	"github.com/clin211/miniblog-v4/pkg/authz"
 )
 
 // Injectors from wire.go:

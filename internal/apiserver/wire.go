@@ -5,7 +5,7 @@ package apiserver
 
 import (
 	"github.com/google/wire"
-	"github.com/onexstack/onexstack/pkg/authz"
+	"github.com/clin211/miniblog-v4/pkg/authz"
 
 	"github.com/clin211/miniblog-v4/internal/apiserver/biz"
 	"github.com/clin211/miniblog-v4/internal/apiserver/pkg/validation"

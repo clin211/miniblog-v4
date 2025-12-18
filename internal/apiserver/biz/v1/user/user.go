@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/jinzhu/copier"
-	"github.com/onexstack/onexstack/pkg/authn"
-	"github.com/onexstack/onexstack/pkg/authz"
-	"github.com/onexstack/onexstack/pkg/store/where"
-	"github.com/onexstack/onexstack/pkg/token"
+	"github.com/clin211/miniblog-v4/pkg/authn"
+	"github.com/clin211/miniblog-v4/pkg/authz"
+	"github.com/clin211/miniblog-v4/pkg/store/where"
+	"github.com/clin211/miniblog-v4/pkg/token"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/timestamppb"
 

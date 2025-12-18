@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	genericoptions "github.com/onexstack/onexstack/pkg/options"
+	genericoptions "github.com/clin211/miniblog-v4/pkg/options"
 	"github.com/spf13/pflag"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -51,10 +51,10 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	// 参数名称为 `--expiration`，默认值为 o.Expiration
 	fs.DurationVar(&o.Expiration, "expiration", o.Expiration, "The expiration duration of JWT tokens.")
 	// Add command-line flags for sub-options.
-	o.TLSOptions.AddFlags(fs)
-	o.HTTPOptions.AddFlags(fs)
-	o.PostgreSQLOptions.AddFlags(fs)
-	o.OTelOptions.AddFlags(fs)
+	o.TLSOptions.AddFlags(fs, "tls")
+	o.HTTPOptions.AddFlags(fs, "http")
+	o.PostgreSQLOptions.AddFlags(fs, "postgresql")
+	o.OTelOptions.AddFlags(fs, "otel")
 }
 
 // Complete completes all the required options.

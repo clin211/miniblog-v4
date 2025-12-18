@@ -1,7 +1,7 @@
 package rid
 
 import (
-	"github.com/onexstack/onexstack/pkg/id"
+	"github.com/clin211/miniblog-v4/pkg/id"
 )
 
 const defaultABC = "abcdefghijklmnopqrstuvwxyz1234567890"

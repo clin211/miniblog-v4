@@ -3,7 +3,7 @@ package errno
 import (
 	"net/http"
 
-	"github.com/onexstack/onexstack/pkg/errorsx"
+	"github.com/clin211/miniblog-v4/pkg/errorsx"
 )
 
 var (

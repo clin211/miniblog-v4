@@ -4,9 +4,9 @@ package store
 import (
 	"context"
 
-	storelogger "github.com/onexstack/onexstack/pkg/logger/slog/store"
-	genericstore "github.com/onexstack/onexstack/pkg/store"
-	"github.com/onexstack/onexstack/pkg/store/where"
+	storelogger "github.com/clin211/miniblog-v4/pkg/logger/slog/store"
+	genericstore "github.com/clin211/miniblog-v4/pkg/store"
+	"github.com/clin211/miniblog-v4/pkg/store/where"
 
 	"github.com/clin211/miniblog-v4/internal/apiserver/model"
 )

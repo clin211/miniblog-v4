@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/onexstack/onexstack/pkg/db"
+	"github.com/clin211/miniblog-v4/pkg/db"
 	"github.com/samber/lo"
 	"github.com/spf13/pflag"
 	"gorm.io/gen"

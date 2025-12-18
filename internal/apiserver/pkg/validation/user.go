@@ -3,7 +3,7 @@ package validation
 import (
 	"context"
 
-	genericvalidation "github.com/onexstack/onexstack/pkg/validation"
+	genericvalidation "github.com/clin211/miniblog-v4/pkg/validation"
 
 	"github.com/clin211/miniblog-v4/internal/pkg/contextx"
 	"github.com/clin211/miniblog-v4/internal/pkg/errno"

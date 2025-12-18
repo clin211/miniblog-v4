@@ -5,8 +5,8 @@ import (
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
-	"github.com/onexstack/onexstack/pkg/core"
-	"github.com/onexstack/onexstack/pkg/token"
+	"github.com/clin211/miniblog-v4/pkg/core"
+	"github.com/clin211/miniblog-v4/pkg/token"
 
 	"github.com/clin211/miniblog-v4/internal/apiserver/model"
 	"github.com/clin211/miniblog-v4/internal/pkg/contextx"
