@@ -1,319 +1,358 @@
-/*
- Navicat Premium Dump SQL
- 
- Source Server         : soybean-postgres
- Source Server Type    : PostgreSQL
- Source Server Version : 140019 (140019)
- Source Host           : localhost:15432
- Source Catalog        : soybean
- Source Schema         : public
- 
- Target Server Type    : PostgreSQL
- Target Server Version : 140019 (140019)
- File Encoding         : 65001
- 
- Date: 11/11/2025 22:37:12
- */
--- ----------------------------
--- sys_api_id_seq 序列结构
--- ----------------------------
-DROP SEQUENCE IF EXISTS "public"."sys_api_id_seq";
-CREATE SEQUENCE "public"."sys_api_id_seq" INCREMENT 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1;
-ALTER SEQUENCE "public"."sys_api_id_seq" OWNER TO "postgres";
--- ----------------------------
--- sys_button_id_seq 序列结构
--- ----------------------------
-DROP SEQUENCE IF EXISTS "public"."sys_button_id_seq";
-CREATE SEQUENCE "public"."sys_button_id_seq" INCREMENT 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1;
-ALTER SEQUENCE "public"."sys_button_id_seq" OWNER TO "postgres";
--- ----------------------------
--- sys_menu_id_seq 序列结构
--- ----------------------------
-DROP SEQUENCE IF EXISTS "public"."sys_menu_id_seq";
-CREATE SEQUENCE "public"."sys_menu_id_seq" INCREMENT 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1;
-ALTER SEQUENCE "public"."sys_menu_id_seq" OWNER TO "postgres";
--- ----------------------------
--- sys_role_id_seq 序列结构
--- ----------------------------
-DROP SEQUENCE IF EXISTS "public"."sys_role_id_seq";
-CREATE SEQUENCE "public"."sys_role_id_seq" INCREMENT 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1;
-ALTER SEQUENCE "public"."sys_role_id_seq" OWNER TO "postgres";
--- ----------------------------
--- sys_users_id_seq 序列结构
--- ----------------------------
-DROP SEQUENCE IF EXISTS "public"."sys_users_id_seq";
-CREATE SEQUENCE "public"."sys_users_id_seq" INCREMENT 1 MINVALUE 1 MAXVALUE 9223372036854775807 START 1 CACHE 1;
-ALTER SEQUENCE "public"."sys_users_id_seq" OWNER TO "postgres";
--- ----------------------------
--- sys_api 表结构
--- ----------------------------
-DROP TABLE IF EXISTS "public"."sys_api";
-CREATE TABLE "public"."sys_api" (
-    "id" int8 NOT NULL DEFAULT nextval('sys_api_id_seq'::regclass),
-    "created_at" int8,
-    "updated_at" int8,
-    "deleted_at" int8 DEFAULT 0,
-    "menu_id" int8,
-    "name" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
-    "desc" varchar(100) COLLATE "pg_catalog"."default",
-    "method" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
-    "path" varchar(100) COLLATE "pg_catalog"."default" NOT NULL,
-    "auth" varchar(1) COLLATE "pg_catalog"."default" DEFAULT '2'::character varying
+--
+-- MinBlog v4 - Go技术栈优化版数据库结构
+-- Modules: 验证码 + 用户管理 + 系统监控
+-- Generated: 2025-12-18
+-- Database: PostgreSQL 16+
+-- Description: 包含完整注释的数据库设计文档
+--
+-- 基础设置
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = ON;
+-- 设置默认搜索路径，优先使用 public schema
+SELECT pg_catalog.set_config ('search_path', 'public', FALSE);
+SET check_function_bodies = FALSE;
+SET xmloption = CONTENT;
+SET client_min_messages = warning;
+SET row_security = OFF;
+-- 注意：
+-- 1. 此脚本需要在 minblog_v4 数据库中执行
+-- 2. 请先手动创建数据库：CREATE DATABASE minblog_v4;
+-- 3. 然后在此数据库中执行此脚本
+-- 基础配置
+SET default_tablespace = '';
+SET default_table_access_method = heap;
+-- 启用UUID扩展
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- 清理现有表 (按依赖关系倒序删除)
+DROP TABLE IF EXISTS public.sys_user_config;
+DROP TABLE IF EXISTS public.sys_user;
+DROP TABLE IF EXISTS public.casbin_rule;
+DROP TABLE IF EXISTS public.sys_login_log;
+DROP TABLE IF EXISTS public.sys_monitor;
+-- =========================
+-- 用户管理模块 (User Management)
+-- =========================
+-- 用户表
+-- Description: 系统用户基础信息表，存储用户的基本资料和认证信息
+-- 使用说明:
+--   - id: 用于内部逻辑关联和统计查询，性能最优
+--   - uuid: 用于API接口和外部展示，保证安全性
+--   - password: 存储bcrypt加密后的密码，不可明文存储
+--   - is_superuser: 超级管理员标志，拥有系统所有权限
+--   - is_active: 用户状态，false表示用户被禁用无法登录
+CREATE TABLE public.sys_user (
+    -- 自增主键，内部逻辑使用，性能最优
+    id BIGSERIAL PRIMARY KEY,
+    -- UUID，API接口展示，保证安全性和分布式唯一性
+    user_id UUID NOT NULL DEFAULT uuid_generate_v4 () UNIQUE,
+    -- 用户名，登录时使用，系统内唯一
+    username VARCHAR (50) NOT NULL UNIQUE,
+    -- 密码，bcrypt加密存储
+    PASSWORD VARCHAR (128) NOT NULL,
+    -- 邮箱地址，用于找回密码和通知
+    email VARCHAR (255) NULL UNIQUE,
+    -- 手机号码，用于短信验证和通知
+    phone VARCHAR (20) NULL UNIQUE,
+    -- 用户头像URL
+    avatar VARCHAR (500) NULL,
+    -- 性别: 0=未知, 1=男, 2=女
+    gender SMALLINT NOT NULL DEFAULT 0,
+    -- 用户状态: 0=正常, 1=锁定, 2=禁用, 3=注销
+    status SMALLINT NOT NULL DEFAULT 0,
+    -- 最后登录时间，用于活跃度统计
+    last_login_at TIMESTAMPTZ,
+    -- 创建时间，自动生成
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- 更新时间，自动更新
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- 用户描述或备注信息
+    description TEXT
 );
-ALTER TABLE "public"."sys_api" OWNER TO "postgres";
--- sys_api 的索引和约束
-ALTER SEQUENCE "public"."sys_api_id_seq" OWNED BY "public"."sys_api"."id";
-SELECT setval('"public"."sys_api_id_seq"', 140, true);
-CREATE INDEX "idx_sys_api_deleted_at" ON "public"."sys_api" USING btree (
-    "deleted_at" "pg_catalog"."int8_ops" ASC NULLS LAST
+-- 用户表注释
+COMMENT ON TABLE sys_user IS '用户基础信息表，存储用户认证信息和基本资料';
+-- 用户表索引
+CREATE INDEX idx_sys_user_status ON sys_user (status);
+CREATE INDEX idx_sys_user_status_created ON sys_user (status, created_at DESC);
+CREATE INDEX idx_sys_user_status_last_login ON sys_user (status, last_login_at DESC);
+-- =========================
+-- Casbin权限控制模块 (Casbin Authorization Module)
+-- =========================
+-- Casbin规则表
+-- Description: 存储Casbin权限策略规则，作为系统中唯一的权限控制机制
+-- 使用说明:
+--   - 基于"主体, 对象, 动作"模型 (subject, object, action)
+--   - 支持多种策略类型: p=权限策略, g=组/角色继承
+--   - 所有权限控制通过此表实现，无需传统RBAC表
+--   - 支持动态权限管理，修改后立即生效
+CREATE TABLE public.casbin_rule (
+    -- 自增主键，用于内部关联
+    id BIGSERIAL PRIMARY KEY,
+    -- 策略类型: p=权限策略, g=角色继承策略
+    ptype VARCHAR (100) NOT NULL,
+    -- 主体(用户名/角色名)或策略字段0
+    v0 VARCHAR (100),
+    -- 对象(资源路径)或策略字段1
+    v1 VARCHAR (100),
+    -- 动作(HTTP方法)或策略字段2
+    v2 VARCHAR (100),
+    -- 扩展策略字段，用于复杂场景
+    v3 VARCHAR (100),
+    -- 扩展策略字段，用于复杂场景
+    v4 VARCHAR (100),
+    -- 扩展策略字段，用于复杂场景
+    v5 VARCHAR (100)
 );
-CREATE UNIQUE INDEX "key_method_path" ON "public"."sys_api" USING btree (
-    "method" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
-    "path" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
+-- Casbin规则表注释
+COMMENT ON TABLE casbin_rule IS 'Casbin权限规则表，作为系统中唯一的权限控制机制，支持RBAC和ABAC策略';
+-- Casbin规则表索引
+CREATE INDEX idx_casbin_rule_ptype ON casbin_rule (ptype);
+CREATE INDEX idx_casbin_rule_ptype_v0_v1 ON casbin_rule (ptype, v0, v1);
+CREATE INDEX idx_casbin_rule_ptype_v0_v1_v2 ON casbin_rule (ptype, v0, v1, v2);
+CREATE INDEX idx_casbin_rule_g_v0 ON casbin_rule (ptype, v0)
+WHERE ptype = 'g';
+-- 用户登录日志表
+-- Description: 记录用户每次登录的详细信息，用于安全审计和统计分析
+-- 使用说明:
+--   - 记录成功和失败的登录尝试
+--   - 包含IP地址、设备信息等安全相关信息
+--   - 用于异常登录检测和安全分析
+CREATE TABLE public.sys_login_log (
+    -- 自增主键
+    id BIGSERIAL PRIMARY KEY,
+    -- 登录用户名，失败时可能用户不存在
+    username VARCHAR (50),
+    -- 登录IP地址，用于安全分析
+    ip_address INET,
+    -- 完整的User-Agent字符串
+    user_agent VARCHAR (1000),
+    -- 登录状态: true=成功, false=失败
+    status BOOLEAN NOT NULL,
+    -- 登录失败错误信息，成功时为空
+    error_message TEXT,
+    -- 登录时间
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-ALTER TABLE "public"."sys_api"
-ADD CONSTRAINT "sys_api_pkey" PRIMARY KEY ("id");
--- sys_api 的列注释
-COMMENT ON COLUMN "public"."sys_api"."created_at" IS '创建时间';
-COMMENT ON COLUMN "public"."sys_api"."updated_at" IS '更新时间';
-COMMENT ON COLUMN "public"."sys_api"."deleted_at" IS '是否删除';
-COMMENT ON COLUMN "public"."sys_api"."menu_id" IS '菜单id';
-COMMENT ON COLUMN "public"."sys_api"."name" IS '权限名称';
-COMMENT ON COLUMN "public"."sys_api"."desc" IS '权限描述';
-COMMENT ON COLUMN "public"."sys_api"."method" IS 'HTTP方法(GET,POST,PUT,DELETE)';
-COMMENT ON COLUMN "public"."sys_api"."path" IS '路由路径(比如/api/users)';
-COMMENT ON COLUMN "public"."sys_api"."auth" IS '是否需要权限1需要2不需要';
--- ----------------------------
--- sys_button 表结构
--- ----------------------------
-DROP TABLE IF EXISTS "public"."sys_button";
-CREATE TABLE "public"."sys_button" (
-    "id" int8 NOT NULL DEFAULT nextval('sys_button_id_seq'::regclass),
-    "created_at" int8,
-    "updated_at" int8,
-    "deleted_at" int8 DEFAULT 0,
-    "menu_id" int8,
-    "label" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
-    "code" varchar(50) COLLATE "pg_catalog"."default" NOT NULL
+-- 登录日志表注释
+COMMENT ON TABLE sys_login_log IS '用户登录日志表，记录登录尝试和安全信息';
+-- 登录日志表索引
+CREATE INDEX idx_sys_login_log_user_created ON sys_login_log (username, created_at DESC);
+CREATE INDEX idx_sys_login_log_status_created ON sys_login_log (status, created_at DESC);
+CREATE INDEX idx_sys_login_log_ip_created ON sys_login_log (ip_address, created_at DESC);
+CREATE INDEX idx_sys_login_log_user_status ON sys_login_log (username, status);
+CREATE INDEX idx_sys_login_log_username ON sys_login_log (username);
+-- 用户个人配置表
+-- Description: 存储用户的个人偏好设置和配置信息
+-- 使用说明:
+--   - config_value使用JSONB格式，支持灵活配置
+--   - 支持主题、语言、通知设置等个人配置
+--   - 每个用户可以有多个配置项
+CREATE TABLE public.sys_user_config (
+    -- 自增主键
+    id BIGSERIAL PRIMARY KEY,
+    -- 用户UUID，级联删除
+    user_id UUID NOT NULL REFERENCES sys_user (user_id) ON DELETE CASCADE,
+    -- 配置项键名，如"theme"、"language"
+    config_key VARCHAR (100) NOT NULL,
+    -- 配置项值，JSON格式，支持复杂配置
+    config_value JSONB NOT NULL,
+    -- 创建时间
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- 更新时间
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- 用户UUID+配置键唯一约束
+    UNIQUE (user_id, config_key)
 );
-ALTER TABLE "public"."sys_button" OWNER TO "postgres";
--- sys_button 的索引和约束
-ALTER SEQUENCE "public"."sys_button_id_seq" OWNED BY "public"."sys_button"."id";
-SELECT setval('"public"."sys_button_id_seq"', 3, true);
-CREATE UNIQUE INDEX "idx_sys_button_code" ON "public"."sys_button" USING btree (
-    "code" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
+-- 用户配置表注释
+COMMENT ON TABLE sys_user_config IS '用户个人配置表，存储用户偏好设置';
+-- 用户配置表索引说明：唯一约束已自动创建索引，无需额外索引
+-- =========================
+-- 系统监控模块 (System Monitor Module)
+-- =========================
+-- 系统监控表
+-- Description: 记录服务器系统资源使用情况，用于性能监控和容量规划
+-- 使用说明:
+--   - 定时收集系统资源数据
+--   - 用于性能分析和告警
+--   - 支持多服务器监控
+CREATE TABLE public.sys_monitor (
+    -- 自增主键
+    id BIGSERIAL PRIMARY KEY,
+    -- 服务器名称，便于标识
+    server_name VARCHAR (100),
+    -- 服务器IP地址
+    server_ip INET,
+    -- CPU使用率，百分比
+    cpu_usage DECIMAL (5, 2) NOT NULL,
+    -- CPU核心数
+    cpu_cores INTEGER,
+    -- 内存使用率，百分比
+    memory_usage DECIMAL (5, 2) NOT NULL,
+    -- 内存总量，字节为单位
+    memory_total BIGINT,
+    -- 已用内存，字节为单位
+    memory_used BIGINT,
+    -- 磁盘使用率，百分比
+    disk_usage DECIMAL (5, 2) NOT NULL,
+    -- 磁盘总量，字节为单位
+    disk_total BIGINT,
+    -- 已用磁盘，字节为单位
+    disk_used BIGINT,
+    -- 网络接收字节数
+    network_rx BIGINT DEFAULT 0,
+    -- 网络发送字节数
+    network_tx BIGINT DEFAULT 0,
+    -- 系统负载平均值，1分钟
+    load_avg_1 DECIMAL (5, 2),
+    -- 系统运行时间，秒为单位
+    uptime BIGINT,
+    -- 进程数量
+    process_count INTEGER,
+    -- 监控时间
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX "idx_sys_button_deleted_at" ON "public"."sys_button" USING btree (
-    "deleted_at" "pg_catalog"."int8_ops" ASC NULLS LAST
-);
-ALTER TABLE "public"."sys_button"
-ADD CONSTRAINT "sys_button_pkey" PRIMARY KEY ("id");
--- sys_button 的列注释
-COMMENT ON COLUMN "public"."sys_button"."created_at" IS '创建时间';
-COMMENT ON COLUMN "public"."sys_button"."updated_at" IS '更新时间';
-COMMENT ON COLUMN "public"."sys_button"."deleted_at" IS '是否删除';
-COMMENT ON COLUMN "public"."sys_button"."menu_id" IS '菜单id';
-COMMENT ON COLUMN "public"."sys_button"."label" IS '按钮名';
-COMMENT ON COLUMN "public"."sys_button"."code" IS '按钮代码';
--- ----------------------------
--- sys_menu 表结构
--- ----------------------------
-DROP TABLE IF EXISTS "public"."sys_menu";
-CREATE TABLE "public"."sys_menu" (
-    "id" int8 NOT NULL DEFAULT nextval('sys_menu_id_seq'::regclass),
-    "created_at" int8,
-    "updated_at" int8,
-    "deleted_at" int8 DEFAULT 0,
-    "create_by_user_id" int8,
-    "update_by_user_id" int8,
-    "parent_id" int8 NOT NULL,
-    "menu_type" text COLLATE "pg_catalog"."default" NOT NULL,
-    "menu_name" text COLLATE "pg_catalog"."default" NOT NULL,
-    "route_name" text COLLATE "pg_catalog"."default" NOT NULL,
-    "route_path" text COLLATE "pg_catalog"."default" NOT NULL,
-    "component" text COLLATE "pg_catalog"."default" NOT NULL,
-    "i18_n_key" text COLLATE "pg_catalog"."default" NOT NULL,
-    "icon_type" text COLLATE "pg_catalog"."default" NOT NULL,
-    "icon" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
-    "status" varchar(1) COLLATE "pg_catalog"."default" NOT NULL DEFAULT '1'::character varying,
-    "keep_alive" bool NOT NULL,
-    "constant" bool NOT NULL,
-    "order_by" int8 NOT NULL,
-    "href" varchar(100) COLLATE "pg_catalog"."default" NOT NULL,
-    "fixed_index_in_tab" int8 NOT NULL,
-    "hide_in_menu" bool NOT NULL,
-    "active_menu" text COLLATE "pg_catalog"."default" NOT NULL,
-    "multi_tab" bool NOT NULL,
-    "query" jsonb
-);
-ALTER TABLE "public"."sys_menu" OWNER TO "postgres";
--- sys_menu 的索引和约束
-ALTER SEQUENCE "public"."sys_menu_id_seq" OWNED BY "public"."sys_menu"."id";
-SELECT setval('"public"."sys_menu_id_seq"', 24, true);
-CREATE INDEX "idx_sys_menu_deleted_at" ON "public"."sys_menu" USING btree (
-    "deleted_at" "pg_catalog"."int8_ops" ASC NULLS LAST
-);
-CREATE UNIQUE INDEX "idx_sys_menu_route_name" ON "public"."sys_menu" USING btree (
-    "route_name" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
-);
-ALTER TABLE "public"."sys_menu"
-ADD CONSTRAINT "sys_menu_pkey" PRIMARY KEY ("id");
--- sys_menu 的列注释
-COMMENT ON COLUMN "public"."sys_menu"."created_at" IS '创建时间';
-COMMENT ON COLUMN "public"."sys_menu"."updated_at" IS '更新时间';
-COMMENT ON COLUMN "public"."sys_menu"."deleted_at" IS '是否删除';
-COMMENT ON COLUMN "public"."sys_menu"."create_by_user_id" IS '创建人id';
-COMMENT ON COLUMN "public"."sys_menu"."update_by_user_id" IS '更新人id';
-COMMENT ON COLUMN "public"."sys_menu"."parent_id" IS '父菜单ID,如果为0则为一级菜单';
-COMMENT ON COLUMN "public"."sys_menu"."menu_type" IS '菜单类型1目录2菜单';
-COMMENT ON COLUMN "public"."sys_menu"."menu_name" IS '菜单名称';
-COMMENT ON COLUMN "public"."sys_menu"."route_name" IS '路由名称';
-COMMENT ON COLUMN "public"."sys_menu"."route_path" IS '路由路径';
-COMMENT ON COLUMN "public"."sys_menu"."component" IS '组件名称';
-COMMENT ON COLUMN "public"."sys_menu"."i18_n_key" IS '国际化key';
-COMMENT ON COLUMN "public"."sys_menu"."icon_type" IS '图标类型1iconify图标你2本地图标';
-COMMENT ON COLUMN "public"."sys_menu"."icon" IS '图标';
-COMMENT ON COLUMN "public"."sys_menu"."status" IS '菜单状态1启用2禁用';
-COMMENT ON COLUMN "public"."sys_menu"."keep_alive" IS '是否缓存路由';
-COMMENT ON COLUMN "public"."sys_menu"."constant" IS '是否常量路由';
-COMMENT ON COLUMN "public"."sys_menu"."order_by" IS '排序,在同级路由中，越小越靠前';
-COMMENT ON COLUMN "public"."sys_menu"."href" IS '外链地址';
-COMMENT ON COLUMN "public"."sys_menu"."fixed_index_in_tab" IS '固定在标签页中的序号';
-COMMENT ON COLUMN "public"."sys_menu"."hide_in_menu" IS '是否隐藏菜单';
-COMMENT ON COLUMN "public"."sys_menu"."active_menu" IS '高亮的菜单';
-COMMENT ON COLUMN "public"."sys_menu"."multi_tab" IS '是否支持多页签';
-COMMENT ON COLUMN "public"."sys_menu"."query" IS '路由参数';
--- ----------------------------
--- sys_role 表结构
--- ----------------------------
-DROP TABLE IF EXISTS "public"."sys_role";
-CREATE TABLE "public"."sys_role" (
-    "id" int8 NOT NULL DEFAULT nextval('sys_role_id_seq'::regclass),
-    "created_at" int8,
-    "updated_at" int8,
-    "deleted_at" int8 DEFAULT 0,
-    "create_by_user_id" int8,
-    "update_by_user_id" int8,
-    "name" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
-    "code" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
-    "desc" varchar(100) COLLATE "pg_catalog"."default",
-    "status" text COLLATE "pg_catalog"."default" DEFAULT '1'::text,
-    "home_menu_id" int8 DEFAULT 1
-);
-ALTER TABLE "public"."sys_role" OWNER TO "postgres";
--- sys_role 的索引和约束
-ALTER SEQUENCE "public"."sys_role_id_seq" OWNED BY "public"."sys_role"."id";
-SELECT setval('"public"."sys_role_id_seq"', 5, true);
-CREATE UNIQUE INDEX "idx_sys_role_code" ON "public"."sys_role" USING btree (
-    "code" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
-);
-CREATE INDEX "idx_sys_role_deleted_at" ON "public"."sys_role" USING btree (
-    "deleted_at" "pg_catalog"."int8_ops" ASC NULLS LAST
-);
-CREATE UNIQUE INDEX "idx_sys_role_name" ON "public"."sys_role" USING btree (
-    "name" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
-);
-ALTER TABLE "public"."sys_role"
-ADD CONSTRAINT "sys_role_pkey" PRIMARY KEY ("id");
--- sys_role 的列注释
-COMMENT ON COLUMN "public"."sys_role"."created_at" IS '创建时间';
-COMMENT ON COLUMN "public"."sys_role"."updated_at" IS '更新时间';
-COMMENT ON COLUMN "public"."sys_role"."deleted_at" IS '是否删除';
-COMMENT ON COLUMN "public"."sys_role"."create_by_user_id" IS '创建人id';
-COMMENT ON COLUMN "public"."sys_role"."update_by_user_id" IS '更新人id';
-COMMENT ON COLUMN "public"."sys_role"."name" IS '角色名称';
-COMMENT ON COLUMN "public"."sys_role"."code" IS '角色编码';
-COMMENT ON COLUMN "public"."sys_role"."desc" IS '角色描述';
-COMMENT ON COLUMN "public"."sys_role"."status" IS '是否启用0禁用1启用';
-COMMENT ON COLUMN "public"."sys_role"."home_menu_id" IS '首页菜单id';
--- ----------------------------
--- sys_role_apis 表结构
--- ----------------------------
-DROP TABLE IF EXISTS "public"."sys_role_apis";
-CREATE TABLE "public"."sys_role_apis" (
-    "role_id" int8 NOT NULL,
-    "api_id" int8 NOT NULL
-);
-ALTER TABLE "public"."sys_role_apis" OWNER TO "postgres";
--- sys_role_apis 的索引和约束
-ALTER TABLE "public"."sys_role_apis"
-ADD CONSTRAINT "sys_role_apis_pkey" PRIMARY KEY ("role_id", "api_id");
--- ----------------------------
--- sys_role_buttons 表结构
--- ----------------------------
-DROP TABLE IF EXISTS "public"."sys_role_buttons";
-CREATE TABLE "public"."sys_role_buttons" (
-    "role_id" int8 NOT NULL,
-    "button_id" int8 NOT NULL
-);
-ALTER TABLE "public"."sys_role_buttons" OWNER TO "postgres";
--- sys_role_buttons 的索引和约束
-ALTER TABLE "public"."sys_role_buttons"
-ADD CONSTRAINT "sys_role_buttons_pkey" PRIMARY KEY ("role_id", "button_id");
--- ----------------------------
--- sys_role_menus 表结构
--- ----------------------------
-DROP TABLE IF EXISTS "public"."sys_role_menus";
-CREATE TABLE "public"."sys_role_menus" (
-    "role_id" int8 NOT NULL,
-    "menu_id" int8 NOT NULL
-);
-ALTER TABLE "public"."sys_role_menus" OWNER TO "postgres";
--- sys_role_menus 的索引和约束
-ALTER TABLE "public"."sys_role_menus"
-ADD CONSTRAINT "sys_role_menus_pkey" PRIMARY KEY ("role_id", "menu_id");
--- ----------------------------
--- sys_user_roles 表结构
--- ----------------------------
-DROP TABLE IF EXISTS "public"."sys_user_roles";
-CREATE TABLE "public"."sys_user_roles" (
-    "role_id" int8 NOT NULL,
-    "user_id" int8 NOT NULL
-);
-ALTER TABLE "public"."sys_user_roles" OWNER TO "postgres";
--- sys_user_roles 的索引和约束
-ALTER TABLE "public"."sys_user_roles"
-ADD CONSTRAINT "sys_user_roles_pkey" PRIMARY KEY ("role_id", "user_id");
--- ----------------------------
--- sys_users 表结构
--- ----------------------------
-DROP TABLE IF EXISTS "public"."sys_users";
-CREATE TABLE "public"."sys_users" (
-    "id" int8 NOT NULL DEFAULT nextval('sys_users_id_seq'::regclass),
-    "created_at" int8,
-    "updated_at" int8,
-    "deleted_at" int8 DEFAULT 0,
-    "create_by_id" int8,
-    "update_by_id" int8,
-    "user_name" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
-    "password" varchar(100) COLLATE "pg_catalog"."default" NOT NULL,
-    "status" varchar(1) COLLATE "pg_catalog"."default" DEFAULT '1'::character varying,
-    "user_gender" varchar(1) COLLATE "pg_catalog"."default" DEFAULT '1'::character varying,
-    "nick_name" varchar(50) COLLATE "pg_catalog"."default",
-    "user_phone" varchar(11) COLLATE "pg_catalog"."default",
-    "user_email" varchar(50) COLLATE "pg_catalog"."default",
-    "last_login_time" int8
-);
-ALTER TABLE "public"."sys_users" OWNER TO "postgres";
--- sys_users 的索引和约束
-ALTER SEQUENCE "public"."sys_users_id_seq" OWNED BY "public"."sys_users"."id";
-SELECT setval('"public"."sys_users_id_seq"', 1, true);
-CREATE INDEX "idx_sys_users_deleted_at" ON "public"."sys_users" USING btree (
-    "deleted_at" "pg_catalog"."int8_ops" ASC NULLS LAST
-);
-CREATE UNIQUE INDEX "idx_sys_users_user_name" ON "public"."sys_users" USING btree (
-    "user_name" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
-);
-ALTER TABLE "public"."sys_users"
-ADD CONSTRAINT "sys_users_pkey" PRIMARY KEY ("id");
--- sys_users 的列注释
-COMMENT ON COLUMN "public"."sys_users"."created_at" IS '创建时间';
-COMMENT ON COLUMN "public"."sys_users"."updated_at" IS '更新时间';
-COMMENT ON COLUMN "public"."sys_users"."deleted_at" IS '是否删除';
-COMMENT ON COLUMN "public"."sys_users"."create_by_id" IS '创建人id';
-COMMENT ON COLUMN "public"."sys_users"."update_by_id" IS '更新人id';
-COMMENT ON COLUMN "public"."sys_users"."status" IS '是否启用0禁用1启用';
-COMMENT ON COLUMN "public"."sys_users"."user_gender" IS '性别1男2女';
-COMMENT ON COLUMN "public"."sys_users"."nick_name" IS '昵称';
-COMMENT ON COLUMN "public"."sys_users"."user_phone" IS '手机号';
-COMMENT ON COLUMN "public"."sys_users"."user_email" IS '邮箱';
+-- 系统监控表注释
+COMMENT ON TABLE sys_monitor IS '系统监控表，记录服务器资源使用情况';
+-- 系统监控表索引
+CREATE INDEX idx_sys_monitor_server_created ON sys_monitor (server_ip, created_at DESC);
+CREATE INDEX idx_sys_monitor_created_at ON sys_monitor (created_at DESC);
+CREATE INDEX idx_sys_monitor_high_cpu ON sys_monitor (created_at DESC)
+WHERE cpu_usage > 80.0;
+CREATE INDEX idx_sys_monitor_high_memory ON sys_monitor (created_at DESC)
+WHERE memory_usage > 80.0;
+-- 注释：索引已移至对应表定义之后，遵循就近原则
+-- =========================
+-- 注释：updated_at 字段更新逻辑移至应用层处理
+-- =========================
+-- =========================
+-- 初始数据 (Initial Data)
+-- =========================
+-- 创建默认超级管理员用户 (密码: admin123)
+-- Description: 创建系统默认管理员账户，密码为admin123，请及时修改
+-- 注意：默认密码较弱，生产环境请立即修改
+INSERT INTO sys_user (
+        username,
+        PASSWORD,
+        email,
+        phone,
+        description
+    )
+VALUES (
+        'admin',
+        '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+        'admin@minblog.local',
+        '+8613800138000',
+        '系统默认超级管理员账户，创建于系统初始化'
+    );
+-- =========================
+-- Casbin权限规则初始数据 (Casbin Rule Initial Data)
+-- =========================
+-- 用户角色绑定规则 (g策略)
+-- Description: 定义用户与角色的绑定关系，格式: g, user, role
+INSERT INTO casbin_rule (ptype, v0, v1, v2)
+VALUES (
+        'g',
+        'admin',
+        'r:super_admin',
+        NULL
+    );
+-- 角色权限策略 (p策略)
+-- Description: 定义角色对资源的访问权限，格式: p, role, resource, action
+INSERT INTO casbin_rule (ptype, v0, v1, v2)
+VALUES -- 超级管理员权限 (r:super_admin)
+    (
+        'p',
+        'r:super_admin',
+        '/api/v1/*',
+        'GET'
+    ),
+    (
+        'p',
+        'r:super_admin',
+        '/api/v1/*',
+        'POST'
+    ),
+    (
+        'p',
+        'r:super_admin',
+        '/api/v1/*',
+        'PUT'
+    ),
+    (
+        'p',
+        'r:super_admin',
+        '/api/v1/*',
+        'DELETE'
+    ),
+    -- 系统监控权限 (所有角色可用)
+    (
+        'p',
+        'r:admin',
+        '/api/v1/monitor/*',
+        'GET'
+    ),
+    (
+        'p',
+        'r:user',
+        '/api/v1/monitor/*',
+        'GET'
+    ),
+    -- Casbin规则管理权限 (仅超级管理员)
+    (
+        'p',
+        'r:super_admin',
+        '/api/v1/casbin/rules',
+        'GET'
+    ),
+    (
+        'p',
+        'r:super_admin',
+        '/api/v1/casbin/rules',
+        'POST'
+    ),
+    (
+        'p',
+        'r:super_admin',
+        '/api/v1/casbin/rules/*',
+        'PUT'
+    ),
+    (
+        'p',
+        'r:super_admin',
+        '/api/v1/casbin/rules/*',
+        'DELETE'
+    ),
+    (
+        'p',
+        'r:super_admin',
+        '/api/v1/casbin/sync',
+        'POST'
+    ),
+    -- 日志查看权限 (管理员及以上)
+    (
+        'p',
+        'r:admin',
+        '/api/v1/logs/*',
+        'GET'
+    ),
+    (
+        'p',
+        'r:user',
+        '/api/v1/logs/login',
+        'GET'
+    ),
+    -- 用户个人权限 (所有用户)
+    (
+        'p',
+        '*',
+        '/api/v1/users/profile',
+        'GET'
+    ),
+    (
+        'p',
+        '*',
+        '/api/v1/users/profile',
+        'PUT'
+    );
